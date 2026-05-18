@@ -1,0 +1,113 @@
+databaseChangeLog:
+  - changeSet:
+      id: v3-001-create-formula-config
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: formula_config
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: version
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_formula_config_version
+              - column:
+                  name: weight_grades
+                  type: NUMERIC(6,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: weight_attendance
+                  type: NUMERIC(6,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: weight_practical
+                  type: NUMERIC(6,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: weight_behavior
+                  type: NUMERIC(6,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: weight_activity
+                  type: NUMERIC(6,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: weight_growth
+                  type: NUMERIC(6,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: weight_consistency
+                  type: NUMERIC(6,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: >-
+              ALTER TABLE formula_config ADD CONSTRAINT ck_formula_weights_sum
+              CHECK (ABS((weight_grades + weight_attendance + weight_practical + weight_behavior
+                          + weight_activity + weight_growth + weight_consistency) - 1.0) < 0.0001)
+        - createIndex:
+            tableName: formula_config
+            indexName: idx_formula_active
+            columns:
+              - column:
+                  name: is_active
+  - changeSet:
+      id: v3-001-seed-default-formula
+      author: stohirov
+      changes:
+        - insert:
+            tableName: formula_config
+            columns:
+              - column:
+                  name: version
+                  value: v1.0
+              - column:
+                  name: weight_grades
+                  valueNumeric: 0.25
+              - column:
+                  name: weight_attendance
+                  valueNumeric: 0.15
+              - column:
+                  name: weight_practical
+                  valueNumeric: 0.25
+              - column:
+                  name: weight_behavior
+                  valueNumeric: 0.10
+              - column:
+                  name: weight_activity
+                  valueNumeric: 0.10
+              - column:
+                  name: weight_growth
+                  valueNumeric: 0.10
+              - column:
+                  name: weight_consistency
+                  valueNumeric: 0.05
+              - column:
+                  name: is_active
+                  valueBoolean: true

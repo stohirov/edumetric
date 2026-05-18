@@ -1,0 +1,70 @@
+databaseChangeLog:
+  - changeSet:
+      id: v1-005-create-groups
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: groups
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: course_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_groups_course
+                    references: courses(id)
+              - column:
+                  name: start_date
+                  type: DATE
+                  constraints:
+                    nullable: true
+              - column:
+                  name: end_date
+                  type: DATE
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: deleted_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: true
+        - createIndex:
+            tableName: groups
+            indexName: idx_groups_course_id
+            columns:
+              - column:
+                  name: course_id
+  - changeSet:
+      id: v1-005-students-group-fk
+      author: stohirov
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: students
+            baseColumnNames: group_id
+            constraintName: fk_students_group
+            referencedTableName: groups
+            referencedColumnNames: id
+            onDelete: RESTRICT

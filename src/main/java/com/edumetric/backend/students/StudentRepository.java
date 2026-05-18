@@ -1,0 +1,16 @@
+package com.edumetric.backend.students;
+
+import com.edumetric.backend.students.domain.Student;
+import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface StudentRepository extends JpaRepository<Student, Long> {
+
+    Optional<Student> findByUserId(Long userId);
+
+    Page<Student> findAllByGroupId(Long groupId, Pageable pageable);
+
+    long countByGroupId(Long groupId);
+}

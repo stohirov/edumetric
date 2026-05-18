@@ -1,0 +1,82 @@
+databaseChangeLog:
+  - changeSet:
+      id: v3-003-create-metric-snapshots
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: metric_snapshots
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: student_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_metric_snapshots_student
+                    references: students(id)
+              - column:
+                  name: snapshot_date
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: composite_score
+                  type: NUMERIC(6,2)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: grades_norm
+                  type: NUMERIC(6,2)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: attendance_norm
+                  type: NUMERIC(6,2)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: practical_norm
+                  type: NUMERIC(6,2)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: behavior_norm
+                  type: NUMERIC(6,2)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: activity_norm
+                  type: NUMERIC(6,2)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: growth_bonus
+                  type: NUMERIC(6,2)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: consistency_bonus
+                  type: NUMERIC(6,2)
+                  constraints:
+                    nullable: true
+        - addUniqueConstraint:
+            tableName: metric_snapshots
+            columnNames: student_id, snapshot_date
+            constraintName: uk_metric_snapshots_student_date
+        - createIndex:
+            tableName: metric_snapshots
+            indexName: idx_metric_snapshots_student
+            columns:
+              - column:
+                  name: student_id
+        - createIndex:
+            tableName: metric_snapshots
+            indexName: idx_metric_snapshots_date
+            columns:
+              - column:
+                  name: snapshot_date
