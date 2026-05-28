@@ -1,0 +1,135 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-003-create-assignments
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: assignments
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: course_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_assignments_course
+                    references: courses(id)
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: max_value
+                  type: NUMERIC(10,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: weight
+                  type: NUMERIC(6,3)
+                  defaultValueNumeric: 1.0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: due_date
+                  type: DATE
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: ALTER TABLE assignments ADD CONSTRAINT ck_assignments_type CHECK (type IN ('THEORY','PRACTICAL','PROJECT','EXAM'))
+        - createIndex:
+            tableName: assignments
+            indexName: idx_assignments_course
+            columns:
+              - column:
+                  name: course_id
+  - changeSet:
+      id: v2-003-create-grades
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: grades
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: student_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_grades_student
+                    references: students(id)
+              - column:
+                  name: assignment_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_grades_assignment
+                    references: assignments(id)
+              - column:
+                  name: value
+                  type: NUMERIC(10,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: graded_by_user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_grades_graded_by
+                    references: users(id)
+              - column:
+                  name: graded_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: comment
+                  type: TEXT
+                  constraints:
+                    nullable: true
+        - addUniqueConstraint:
+            tableName: grades
+            columnNames: student_id, assignment_id
+            constraintName: uk_grades_student_assignment
+        - sql:
+            sql: ALTER TABLE grades ADD CONSTRAINT ck_grades_value_nonneg CHECK (value >= 0)
+        - createIndex:
+            tableName: grades
+            indexName: idx_grades_student
+            columns:
+              - column:
+                  name: student_id
+        - createIndex:
+            tableName: grades
+            indexName: idx_grades_assignment
+            columns:
+              - column:
+                  name: assignment_id

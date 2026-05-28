@@ -1,0 +1,23 @@
+name: edumetric-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: edumetric-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: edumetric
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - edumetric-pgdata-dev:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d edumetric"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  edumetric-pgdata-dev:

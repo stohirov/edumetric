@@ -1,0 +1,69 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-002-create-attendance
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: attendance
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: student_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_attendance_student
+                    references: students(id)
+              - column:
+                  name: lesson_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_attendance_lesson
+                    references: lessons(id)
+              - column:
+                  name: status
+                  type: VARCHAR(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: marked_by_user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_attendance_marked_by
+                    references: users(id)
+              - column:
+                  name: marked_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: comment
+                  type: TEXT
+                  constraints:
+                    nullable: true
+        - addUniqueConstraint:
+            tableName: attendance
+            columnNames: student_id, lesson_id
+            constraintName: uk_attendance_student_lesson
+        - sql:
+            sql: ALTER TABLE attendance ADD CONSTRAINT ck_attendance_status CHECK (status IN ('PRESENT','LATE','ABSENT','EXCUSED'))
+        - createIndex:
+            tableName: attendance
+            indexName: idx_attendance_student
+            columns:
+              - column:
+                  name: student_id
+        - createIndex:
+            tableName: attendance
+            indexName: idx_attendance_lesson
+            columns:
+              - column:
+                  name: lesson_id

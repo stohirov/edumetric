@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - includeAll:
+      path: classpath:db/changelog/v1-core/
+      relativeToChangelogFile: false
+      errorIfMissingOrEmpty: true
+  - includeAll:
+      path: classpath:db/changelog/v2-domain/
+      relativeToChangelogFile: false
+      errorIfMissingOrEmpty: true
+  - includeAll:
+      path: classpath:db/changelog/v3-metrics/
+      relativeToChangelogFile: false
+      errorIfMissingOrEmpty: true
+  - includeAll:
+      path: classpath:db/changelog/v4-audit/
+      relativeToChangelogFile: false
+      errorIfMissingOrEmpty: true

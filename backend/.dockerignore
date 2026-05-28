@@ -1,0 +1,17 @@
+target/
+.idea/
+.vscode/
+.git/
+.gitignore
+*.iml
+*.ipr
+*.iws
+HELP.md
+TODO.md
+ARCHITECTURE.md
+README.md
+.claude/
+.mvn/wrapper/maven-wrapper.jar
+docker-compose*.yml
+Dockerfile
+.dockerignore

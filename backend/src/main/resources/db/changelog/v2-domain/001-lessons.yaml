@@ -1,0 +1,73 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-001-create-lessons
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: lessons
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: group_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_lessons_group
+                    references: groups(id)
+              - column:
+                  name: course_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_lessons_course
+                    references: courses(id)
+              - column:
+                  name: teacher_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_lessons_teacher
+                    references: teachers(id)
+              - column:
+                  name: topic
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: scheduled_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: lessons
+            indexName: idx_lessons_group_scheduled
+            columns:
+              - column:
+                  name: group_id
+              - column:
+                  name: scheduled_at
+        - createIndex:
+            tableName: lessons
+            indexName: idx_lessons_teacher_scheduled
+            columns:
+              - column:
+                  name: teacher_id
+              - column:
+                  name: scheduled_at

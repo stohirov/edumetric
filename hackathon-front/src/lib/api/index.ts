@@ -1,0 +1,14 @@
+export { api, ApiError, API_BASE_URL, setToken, getToken } from "./client";
+
+export * as authApi from "./auth";
+export * as usersApi from "./users";
+export * as studentsApi from "./students";
+export * as teachersApi from "./teachers";
+export * as groupsApi from "./groups";
+export * as coursesApi from "./courses";
+export * as lessonsApi from "./lessons";
+export * as attendanceApi from "./attendance";
+export * as gradesApi from "./grades";
+export * as behaviorApi from "./behavior";
+export * as metricsApi from "./metrics";
+export * as analyticsApi from "./analytics";
