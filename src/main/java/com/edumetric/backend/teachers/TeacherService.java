@@ -2,6 +2,11 @@ package com.edumetric.backend.teachers;
 
 import com.edumetric.backend.common.exception.ConflictException;
 import com.edumetric.backend.common.exception.ResourceNotFoundException;
+import com.edumetric.backend.groups.GroupRepository;
+import com.edumetric.backend.groups.dto.GroupDto;
+import com.edumetric.backend.lessons.LessonRepository;
+import com.edumetric.backend.students.StudentRepository;
+import com.edumetric.backend.students.dto.StudentDto;
 import com.edumetric.backend.teachers.domain.Teacher;
 import com.edumetric.backend.teachers.dto.CreateTeacherRequest;
 import com.edumetric.backend.teachers.dto.TeacherDto;
@@ -9,6 +14,7 @@ import com.edumetric.backend.teachers.dto.UpdateTeacherRequest;
 import com.edumetric.backend.users.UserRepository;
 import com.edumetric.backend.users.domain.Role;
 import com.edumetric.backend.users.domain.User;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +29,9 @@ public class TeacherService {
 
     private final TeacherRepository teacherRepository;
     private final UserRepository userRepository;
+    private final StudentRepository studentRepository;
+    private final GroupRepository groupRepository;
+    private final LessonRepository lessonRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
@@ -34,6 +43,18 @@ public class TeacherService {
     public TeacherDto get(Long id) {
         return teacherRepository.findById(id).map(TeacherDto::from)
                 .orElseThrow(() -> ResourceNotFoundException.of("Teacher", id));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<StudentDto> listMyStudents(Long teacherUserId, Pageable pageable) {
+        return studentRepository.findAllByTeacherUserId(teacherUserId, pageable).map(StudentDto::from);
+    }
+
+    @Transactional(readOnly = true)
+    public List<GroupDto> listMyGroups(Long teacherUserId) {
+        List<Long> ids = lessonRepository.findGroupIdsForTeacherUser(teacherUserId);
+        if (ids.isEmpty()) return List.of();
+        return groupRepository.findAllById(ids).stream().map(GroupDto::from).toList();
     }
 
     @Transactional

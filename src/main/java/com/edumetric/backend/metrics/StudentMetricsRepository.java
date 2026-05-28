@@ -58,4 +58,11 @@ public interface StudentMetricsRepository extends JpaRepository<StudentMetrics, 
     List<StudentMetrics> findAtRiskInGroups(@Param("groupIds") List<Long> groupIds);
 
     List<StudentMetrics> findAllByStudentGroupId(Long groupId);
+
+    @Query("""
+            SELECT sm FROM StudentMetrics sm
+            WHERE sm.student.group.id IN :groupIds
+              AND sm.compositeScore IS NOT NULL
+            """)
+    List<StudentMetrics> findAllByStudentGroupIdIn(@Param("groupIds") List<Long> groupIds);
 }

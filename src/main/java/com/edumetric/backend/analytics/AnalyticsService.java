@@ -3,17 +3,27 @@ package com.edumetric.backend.analytics;
 import com.edumetric.backend.analytics.dto.AdminDashboardDto;
 import com.edumetric.backend.analytics.dto.AdminDashboardDto.GroupSummary;
 import com.edumetric.backend.analytics.dto.AdminDashboardDto.HistogramBucket;
+import com.edumetric.backend.analytics.dto.AdminDashboardDto.Insight;
 import com.edumetric.backend.analytics.dto.AdminDashboardDto.Kpis;
 import com.edumetric.backend.analytics.dto.AdminDashboardDto.TeacherActivity;
+import com.edumetric.backend.analytics.dto.AdminDashboardDto.TrendPoint;
+import com.edumetric.backend.analytics.dto.AdminDashboardDto.WeeklyActivityPoint;
 import com.edumetric.backend.analytics.dto.AtRiskStudentDto;
 import com.edumetric.backend.analytics.dto.GroupAnalyticsDto;
+import com.edumetric.backend.analytics.dto.TeacherDashboardDto;
 import com.edumetric.backend.attendance.AttendanceRepository;
+import com.edumetric.backend.attendance.domain.Attendance;
+import com.edumetric.backend.attendance.domain.AttendanceStatus;
 import com.edumetric.backend.common.exception.ForbiddenException;
 import com.edumetric.backend.common.exception.ResourceNotFoundException;
+import com.edumetric.backend.grades.GradeRepository;
+import com.edumetric.backend.grades.domain.Grade;
 import com.edumetric.backend.groups.GroupRepository;
 import com.edumetric.backend.groups.domain.Group;
 import com.edumetric.backend.lessons.LessonRepository;
+import com.edumetric.backend.metrics.MetricSnapshotRepository;
 import com.edumetric.backend.metrics.StudentMetricsRepository;
+import com.edumetric.backend.metrics.domain.MetricSnapshot;
 import com.edumetric.backend.metrics.domain.StudentMetrics;
 import com.edumetric.backend.security.AuthenticatedUser;
 import com.edumetric.backend.students.StudentRepository;
@@ -21,9 +31,20 @@ import com.edumetric.backend.teachers.TeacherRepository;
 import com.edumetric.backend.users.UserRepository;
 import com.edumetric.backend.users.domain.Role;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.DayOfWeek;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Month;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +60,8 @@ public class AnalyticsService {
     private final StudentMetricsRepository studentMetricsRepository;
     private final LessonRepository lessonRepository;
     private final AttendanceRepository attendanceRepository;
+    private final GradeRepository gradeRepository;
+    private final MetricSnapshotRepository metricSnapshotRepository;
 
     @Transactional(readOnly = true)
     public AdminDashboardDto adminDashboard() {
@@ -63,7 +86,12 @@ public class AnalyticsService {
 
         List<TeacherActivity> activity = teacherActivity();
 
-        return new AdminDashboardDto(kpis, histogram, topGroups, activity);
+        List<TrendPoint> growthTrend = growthTrend();
+        List<WeeklyActivityPoint> weeklyActivity = weeklyActivity();
+        List<Insight> insights = institutionInsights(all, avg, atRisk);
+
+        return new AdminDashboardDto(
+                kpis, histogram, topGroups, activity, growthTrend, weeklyActivity, insights);
     }
 
     @Transactional(readOnly = true)
@@ -107,6 +135,62 @@ public class AnalyticsService {
     }
 
     @Transactional(readOnly = true)
+    public TeacherDashboardDto teacherDashboard(AuthenticatedUser actor) {
+        List<Long> groupIds = lessonRepository.findGroupIdsForTeacherUser(actor.id());
+        if (groupIds.isEmpty()) {
+            return new TeacherDashboardDto(
+                    new TeacherDashboardDto.Kpis(0, 0, null, 0),
+                    histogram(List.of()),
+                    List.of());
+        }
+
+        List<StudentMetrics> metrics = studentMetricsRepository.findAllByStudentGroupIdIn(groupIds);
+
+        long studentCount = 0;
+        for (Long gid : groupIds) studentCount += studentRepository.countByGroupId(gid);
+
+        double sum = 0;
+        int n = 0;
+        long atRisk = 0;
+        for (StudentMetrics m : metrics) {
+            if (m.getCompositeScore() == null) continue;
+            double cs = m.getCompositeScore().doubleValue();
+            sum += cs;
+            n++;
+            if (cs < 50) atRisk++;
+        }
+        Double avg = n == 0 ? null : sum / n;
+
+        List<TeacherDashboardDto.GroupSummary> groups = groupRepository.findAllById(groupIds).stream()
+                .map(this::summarizeForTeacher)
+                .sorted(Comparator.comparing(
+                        TeacherDashboardDto.GroupSummary::averageScore,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+
+        return new TeacherDashboardDto(
+                new TeacherDashboardDto.Kpis(studentCount, groupIds.size(), avg, atRisk),
+                histogram(metrics),
+                groups);
+    }
+
+    private TeacherDashboardDto.GroupSummary summarizeForTeacher(Group group) {
+        List<StudentMetrics> metrics = studentMetricsRepository.findAllByStudentGroupId(group.getId());
+        double sum = 0;
+        int n = 0;
+        for (StudentMetrics m : metrics) {
+            if (m.getCompositeScore() == null) continue;
+            sum += m.getCompositeScore().doubleValue();
+            n++;
+        }
+        Double avg = n == 0 ? null : sum / n;
+        return new TeacherDashboardDto.GroupSummary(
+                group.getId(), group.getName(),
+                studentRepository.countByGroupId(group.getId()),
+                avg);
+    }
+
+    @Transactional(readOnly = true)
     public List<AtRiskStudentDto> atRisk(AuthenticatedUser actor) {
         List<StudentMetrics> base = switch (actor.role()) {
             case ADMIN -> studentMetricsRepository.findAllAtRisk();
@@ -125,6 +209,7 @@ public class AnalyticsService {
         return new AtRiskStudentDto(
                 m.getStudent().getId(),
                 m.getStudent().getUser().getFullName(),
+                m.getStudent().getUser().getEmail(),
                 m.getStudent().getGroup() == null ? null : m.getStudent().getGroup().getId(),
                 m.getStudent().getGroup() == null ? null : m.getStudent().getGroup().getName(),
                 m.getCompositeScore(),
@@ -187,5 +272,155 @@ public class AnalyticsService {
 
     private static Double avgOrNull(double[] sums, int[] counts, int idx) {
         return counts[idx] == 0 ? null : sums[idx] / counts[idx];
+    }
+
+    private List<TrendPoint> growthTrend() {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        LocalDate from = today.minusMonths(5).withDayOfMonth(1);
+        List<MetricSnapshot> snapshots =
+                metricSnapshotRepository.findAllBySnapshotDateGreaterThanEqualOrderBySnapshotDateAsc(from);
+
+        Map<Month, double[]> sums = new LinkedHashMap<>();
+        Map<Month, int[]> counts = new LinkedHashMap<>();
+        for (int i = 5; i >= 0; i--) {
+            Month m = today.minusMonths(i).getMonth();
+            sums.put(m, new double[3]);
+            counts.put(m, new int[3]);
+        }
+        for (MetricSnapshot s : snapshots) {
+            Month m = s.getSnapshotDate().getMonth();
+            double[] sm = sums.get(m);
+            int[] cm = counts.get(m);
+            if (sm == null) continue;
+            addBucket(sm, cm, 0, s.getCompositeScore());
+            addBucket(sm, cm, 1, s.getAttendanceNorm());
+            addBucket(sm, cm, 2, s.getGradesNorm());
+        }
+        List<TrendPoint> out = new ArrayList<>(6);
+        for (Map.Entry<Month, double[]> e : sums.entrySet()) {
+            Month m = e.getKey();
+            double[] sm = e.getValue();
+            int[] cm = counts.get(m);
+            out.add(new TrendPoint(
+                    m.name(),
+                    bucketAvg(sm, cm, 0),
+                    bucketAvg(sm, cm, 1),
+                    bucketAvg(sm, cm, 2)));
+        }
+        return out;
+    }
+
+    private List<WeeklyActivityPoint> weeklyActivity() {
+        Instant since = Instant.now().minus(7, ChronoUnit.DAYS);
+        List<Grade> grades = gradeRepository.findAllByGradedAtAfter(since);
+        List<Attendance> attendances = attendanceRepository.findAllByMarkedAtAfter(since);
+
+        Map<DayOfWeek, long[]> agg = new EnumMap<>(DayOfWeek.class);
+        for (DayOfWeek d : DayOfWeek.values()) {
+            agg.put(d, new long[3]); // [sessions, submissions, presentSessions]
+        }
+        for (Attendance a : attendances) {
+            if (a.getMarkedAt() == null) continue;
+            DayOfWeek dow = a.getMarkedAt().atOffset(ZoneOffset.UTC).getDayOfWeek();
+            long[] row = agg.get(dow);
+            row[0]++;
+            if (a.getStatus() == AttendanceStatus.PRESENT || a.getStatus() == AttendanceStatus.LATE) {
+                row[2]++;
+            }
+        }
+        for (Grade g : grades) {
+            if (g.getGradedAt() == null) continue;
+            DayOfWeek dow = g.getGradedAt().atOffset(ZoneOffset.UTC).getDayOfWeek();
+            agg.get(dow)[1]++;
+        }
+        List<WeeklyActivityPoint> out = new ArrayList<>(7);
+        for (DayOfWeek d : new DayOfWeek[]{
+                DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+                DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY}) {
+            long[] row = agg.get(d);
+            int engagement = row[0] == 0 ? 0 : (int) Math.round(100.0 * row[2] / row[0]);
+            out.add(new WeeklyActivityPoint(d.name(), row[0], row[1], engagement));
+        }
+        return out;
+    }
+
+    private List<Insight> institutionInsights(List<StudentMetrics> all, Double avg, long atRiskCount) {
+        List<Insight> out = new ArrayList<>();
+        Instant now = Instant.now();
+
+        if (avg != null) {
+            out.add(new Insight(
+                    "avg-score",
+                    "Composite average",
+                    String.format("Institution-wide composite at %.1f", avg),
+                    relativeTime(now, now),
+                    "growth"));
+        }
+
+        out.add(new Insight(
+                "at-risk-count",
+                "At-risk watchlist",
+                atRiskCount + " students currently below the risk threshold",
+                relativeTime(now, now.minus(Duration.ofMinutes(45))),
+                atRiskCount > 0 ? "alert" : "growth"));
+
+        Instant weekAgo = now.minus(7, ChronoUnit.DAYS);
+        long recentGrades = gradeRepository.findAllByGradedAtAfter(weekAgo).size();
+        out.add(new Insight(
+                "submissions-week",
+                "Submissions this week",
+                recentGrades + " assignments graded in the last 7 days",
+                relativeTime(now, now.minus(Duration.ofHours(2))),
+                "grade"));
+
+        List<Attendance> recentAttendance = attendanceRepository.findAllByMarkedAtAfter(weekAgo);
+        long present = recentAttendance.stream()
+                .filter(a -> a.getStatus() == AttendanceStatus.PRESENT
+                        || a.getStatus() == AttendanceStatus.LATE)
+                .count();
+        int attendanceRate = recentAttendance.isEmpty()
+                ? 0
+                : (int) Math.round(100.0 * present / recentAttendance.size());
+        out.add(new Insight(
+                "attendance-week",
+                "Weekly attendance",
+                attendanceRate + "% present across all groups this week",
+                relativeTime(now, now.minus(Duration.ofHours(5))),
+                "attendance"));
+
+        long lowAttendance = all.stream()
+                .filter(m -> m.getAttendanceNorm() != null
+                        && m.getAttendanceNorm().compareTo(BigDecimal.valueOf(70)) < 0)
+                .count();
+        if (lowAttendance > 0) {
+            out.add(new Insight(
+                    "low-attendance",
+                    "Behavior review",
+                    lowAttendance + " students with attendance below 70%",
+                    relativeTime(now, now.minus(Duration.ofDays(1))),
+                    "behavior"));
+        }
+
+        return out;
+    }
+
+    private static void addBucket(double[] sums, int[] counts, int idx, BigDecimal v) {
+        if (v == null) return;
+        sums[idx] += v.doubleValue();
+        counts[idx]++;
+    }
+
+    private static BigDecimal bucketAvg(double[] sums, int[] counts, int idx) {
+        if (counts[idx] == 0) return null;
+        return BigDecimal.valueOf(sums[idx] / counts[idx]).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private static String relativeTime(Instant now, Instant when) {
+        long minutes = Math.max(0, Duration.between(when, now).toMinutes());
+        if (minutes < 60) return Math.max(1, minutes) + "m ago";
+        long hours = minutes / 60;
+        if (hours < 24) return hours + "h ago";
+        long days = hours / 24;
+        return days + "d ago";
     }
 }

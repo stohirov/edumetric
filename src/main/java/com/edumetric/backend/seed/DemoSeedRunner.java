@@ -147,16 +147,21 @@ public class DemoSeedRunner implements CommandLineRunner {
         assignments.add(saveAssignment(course, "Capstone Project", AssignmentType.PROJECT, 100, "3.0"));
 
         Random rng = new Random(42);
+        Instant gradingStart = Instant.now().minus(java.time.Duration.ofDays(6));
         for (int i = 0; i < students.size(); i++) {
             Student s = students.get(i);
             int profile = profileFor(i);
-            for (Assignment a : assignments) {
+            for (int aIdx = 0; aIdx < assignments.size(); aIdx++) {
+                Assignment a = assignments.get(aIdx);
                 int val = Math.max(20, Math.min(100, profile + rng.nextInt(21) - 10));
+                long offsetSeconds =
+                        (long) ((aIdx + i * 0.3) * (6 * 24 * 60 * 60.0 / Math.max(1, assignments.size())));
+                Instant gradedAt = gradingStart.plus(java.time.Duration.ofSeconds(offsetSeconds));
                 gradeRepository.save(Grade.builder()
                         .student(s).assignment(a)
                         .value(BigDecimal.valueOf(val))
                         .gradedBy(teacherUser)
-                        .gradedAt(Instant.now())
+                        .gradedAt(gradedAt)
                         .build());
             }
             for (Lesson l : lessons) {
@@ -247,13 +252,14 @@ public class DemoSeedRunner implements CommandLineRunner {
 
     private void seedHistoricSnapshots(List<Student> students, Random rng) {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        int totalWeeks = 26;
         for (int i = 0; i < students.size(); i++) {
             Student s = students.get(i);
             double trajectory = profileFor(i);
-            for (int week = 12; week >= 1; week--) {
+            for (int week = totalWeeks; week >= 1; week--) {
                 LocalDate date = today.minusWeeks(week);
                 double noise = (rng.nextDouble() - 0.5) * 6;
-                double drift = (12 - week) * 0.4;
+                double drift = (totalWeeks - week) * 0.25;
                 double score = clamp(trajectory + drift + noise);
                 snapshotRepository.save(MetricSnapshot.builder()
                         .student(s).snapshotDate(date)

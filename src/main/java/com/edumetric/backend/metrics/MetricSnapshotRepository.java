@@ -13,4 +13,6 @@ public interface MetricSnapshotRepository extends JpaRepository<MetricSnapshot, 
     List<MetricSnapshot> findTop12ByStudentIdOrderBySnapshotDateDesc(Long studentId);
 
     Optional<MetricSnapshot> findByStudentIdAndSnapshotDate(Long studentId, LocalDate snapshotDate);
+
+    List<MetricSnapshot> findAllBySnapshotDateGreaterThanEqualOrderBySnapshotDateAsc(LocalDate from);
 }

@@ -39,6 +39,19 @@ public class StudentService {
                 .orElseThrow(() -> ResourceNotFoundException.of("Student", id));
     }
 
+    @Transactional(readOnly = true)
+    public StudentDto getByUserId(Long userId) {
+        return studentRepository.findByUserId(userId).map(StudentDto::from)
+                .orElseThrow(() -> ResourceNotFoundException.of("Student (for user)", userId));
+    }
+
+    @Transactional(readOnly = true)
+    public Long getIdByUserId(Long userId) {
+        return studentRepository.findByUserId(userId)
+                .map(Student::getId)
+                .orElseThrow(() -> ResourceNotFoundException.of("Student (for user)", userId));
+    }
+
     @Transactional
     public StudentDto create(CreateStudentRequest request) {
         if (userRepository.existsByEmail(request.email())) {

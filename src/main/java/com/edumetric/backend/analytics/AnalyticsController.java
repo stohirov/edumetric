@@ -3,6 +3,7 @@ package com.edumetric.backend.analytics;
 import com.edumetric.backend.analytics.dto.AdminDashboardDto;
 import com.edumetric.backend.analytics.dto.AtRiskStudentDto;
 import com.edumetric.backend.analytics.dto.GroupAnalyticsDto;
+import com.edumetric.backend.analytics.dto.TeacherDashboardDto;
 import com.edumetric.backend.common.api.ApiResponse;
 import com.edumetric.backend.security.AuthenticatedUser;
 import java.util.List;
@@ -26,6 +27,13 @@ public class AnalyticsController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<AdminDashboardDto>> adminDashboard() {
         return ResponseEntity.ok(ApiResponse.ok(analyticsService.adminDashboard()));
+    }
+
+    @GetMapping("/teacher/dashboard")
+    @PreAuthorize("hasRole('TEACHER')")
+    public ResponseEntity<ApiResponse<TeacherDashboardDto>> teacherDashboard(
+            @AuthenticationPrincipal AuthenticatedUser actor) {
+        return ResponseEntity.ok(ApiResponse.ok(analyticsService.teacherDashboard(actor)));
     }
 
     @GetMapping("/groups/{id}")

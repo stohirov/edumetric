@@ -2,6 +2,7 @@ package com.edumetric.backend.students;
 
 import com.edumetric.backend.common.api.ApiResponse;
 import com.edumetric.backend.common.api.PageResponse;
+import com.edumetric.backend.security.AuthenticatedUser;
 import com.edumetric.backend.students.dto.CreateStudentRequest;
 import com.edumetric.backend.students.dto.StudentDashboardDto;
 import com.edumetric.backend.students.dto.StudentDto;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -32,6 +34,20 @@ public class StudentController {
     @PreAuthorize("hasRole('TEACHER')")
     public ResponseEntity<ApiResponse<PageResponse<StudentDto>>> list(Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(PageResponse.of(studentService.list(pageable))));
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<ApiResponse<StudentDto>> me(@AuthenticationPrincipal AuthenticatedUser user) {
+        return ResponseEntity.ok(ApiResponse.ok(studentService.getByUserId(user.id())));
+    }
+
+    @GetMapping("/me/dashboard")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<ApiResponse<StudentDashboardDto>> myDashboard(
+            @AuthenticationPrincipal AuthenticatedUser user) {
+        Long studentId = studentService.getIdByUserId(user.id());
+        return ResponseEntity.ok(ApiResponse.ok(studentDashboardService.dashboard(studentId)));
     }
 
     @GetMapping("/{id}/dashboard")
