@@ -83,7 +83,7 @@ export function LoginFormCard() {
 
   const performLogin = async (loginEmail: string, loginPassword: string) => {
     const user = await login(loginEmail, loginPassword);
-    router.push(roleHomePath(user.role));
+    router.push(user.mustChangePassword ? "/change-password" : roleHomePath(user.role));
     return user;
   };
 
@@ -94,6 +94,10 @@ export function LoginFormCard() {
           t.login.errors.wrongCredentials,
           t.login.errors.wrongCredentialsMsg,
         );
+        return;
+      }
+      if (err.status === 423) {
+        triggerError("Account locked", err.message);
         return;
       }
       if (err.status === 0) {

@@ -2,13 +2,15 @@ package com.edumetric.backend.security;
 
 import com.edumetric.backend.users.domain.Role;
 import com.edumetric.backend.users.domain.User;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-public record AuthenticatedUser(Long id, String email, String passwordHash, Role role, String fullName)
+public record AuthenticatedUser(
+        Long id, String email, String passwordHash, Role role, String fullName, Instant lockedUntil)
         implements UserDetails {
 
     public static AuthenticatedUser from(User user) {
@@ -17,7 +19,8 @@ public record AuthenticatedUser(Long id, String email, String passwordHash, Role
                 user.getEmail(),
                 user.getPasswordHash(),
                 user.getRole(),
-                user.getFullName());
+                user.getFullName(),
+                user.getLockedUntil());
     }
 
     @Override
@@ -42,7 +45,7 @@ public record AuthenticatedUser(Long id, String email, String passwordHash, Role
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return lockedUntil == null || lockedUntil.isBefore(Instant.now());
     }
 
     @Override

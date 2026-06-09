@@ -22,7 +22,7 @@ System design: `ARCHITECTURE.md` (next to this file).
 | Migrations | **Liquibase** — YAML changelogs under `src/main/resources/db/changelog/` |
 | ORM | **Spring Data JPA + Hibernate 6.6** |
 | Web layer | **Spring MVC** (`spring-boot-starter-webmvc`) — NOT WebFlux |
-| Security | **Spring Security 7 + JWT (HS256)** — stateless, no refresh tokens |
+| Security | **Spring Security 7 + JWT (HS256)** — short-lived access token + opaque rotating refresh tokens (DB-stored, hashed) |
 | Boilerplate | **Lombok** on entities; **records** for DTOs |
 | Observability | Actuator + Micrometer + `datasource-micrometer` |
 

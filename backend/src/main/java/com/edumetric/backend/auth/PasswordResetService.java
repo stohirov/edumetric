@@ -39,6 +39,7 @@ public class PasswordResetService {
     private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
+    private final PasswordPolicy passwordPolicy;
 
     /**
      * Issues a reset token for the account if one exists. Always succeeds from the
@@ -67,6 +68,7 @@ public class PasswordResetService {
     /** Consumes a reset token and sets the new password. Throws on invalid/expired/used tokens. */
     @Transactional
     public void resetPassword(String rawToken, String newPassword) {
+        passwordPolicy.validate(newPassword);
         Instant now = Instant.now();
         PasswordResetToken token = tokenRepository.findByTokenHash(hash(rawToken))
                 .filter(t -> t.getUsedAt() == null && t.getExpiresAt().isAfter(now))
@@ -76,6 +78,8 @@ public class PasswordResetService {
                 .orElseThrow(() -> new BadRequestException("Invalid or expired reset token."));
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
+        // A self-chosen password clears any pending forced-change requirement.
+        user.setMustChangePassword(false);
         token.setUsedAt(now);
         // Invalidate any other outstanding tokens for this user.
         tokenRepository.invalidateActiveTokens(user.getId(), now);

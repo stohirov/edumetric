@@ -1,4 +1,4 @@
-import { api, setToken } from "./client";
+import { api, setToken, setRefreshToken, getRefreshToken } from "./client";
 import type {
   ForgotPasswordRequest,
   LoginRequest,
@@ -10,6 +10,7 @@ import type {
 export async function login(payload: LoginRequest): Promise<LoginResponse> {
   const res = await api.post<LoginResponse>("/auth/login", payload);
   setToken(res.token);
+  setRefreshToken(res.refreshToken);
   return res;
 }
 
@@ -28,9 +29,12 @@ export function resetPassword(payload: ResetPasswordRequest): Promise<void> {
 }
 
 export async function logout(): Promise<void> {
+  const refreshToken = getRefreshToken();
   try {
-    await api.post<void>("/auth/logout");
+    // Send the refresh token so the server can revoke it (defends against reuse).
+    await api.post<void>("/auth/logout", refreshToken ? { refreshToken } : undefined);
   } finally {
     setToken(null);
+    setRefreshToken(null);
   }
 }

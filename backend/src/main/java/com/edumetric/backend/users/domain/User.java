@@ -60,4 +60,18 @@ public class User extends AuditableEntity {
     @Column(name = "notify_in_app", nullable = false)
     @Builder.Default
     private boolean notifyInApp = true;
+
+    /** Consecutive failed login attempts since the last successful login. */
+    @Column(name = "failed_login_attempts", nullable = false)
+    @Builder.Default
+    private int failedLoginAttempts = 0;
+
+    /** When set and in the future, the account is locked out of login until this instant. */
+    @Column(name = "locked_until")
+    private java.time.Instant lockedUntil;
+
+    /** True for provisioned accounts that must set a new password before using the app. */
+    @Column(name = "must_change_password", nullable = false)
+    @Builder.Default
+    private boolean mustChangePassword = false;
 }

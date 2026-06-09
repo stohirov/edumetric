@@ -10,7 +10,8 @@ public record UserDto(
         Role role,
         String language,
         boolean notifyEmail,
-        boolean notifyInApp
+        boolean notifyInApp,
+        boolean mustChangePassword
 ) {
 
     public static UserDto from(User user) {
@@ -21,6 +22,7 @@ public record UserDto(
                 user.getRole(),
                 user.getLanguage(),
                 user.isNotifyEmail(),
-                user.isNotifyInApp());
+                user.isNotifyInApp(),
+                user.isMustChangePassword());
     }
 }

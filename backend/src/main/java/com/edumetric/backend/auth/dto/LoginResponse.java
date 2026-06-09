@@ -1,4 +1,4 @@
 package com.edumetric.backend.auth.dto;
 
-public record LoginResponse(String token, long expiresInSeconds, UserDto user) {
+public record LoginResponse(String token, long expiresInSeconds, String refreshToken, UserDto user) {
 }

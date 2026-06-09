@@ -34,22 +34,41 @@ These are started but incomplete — close them before building new things.
 
 ## 1. Authentication & Account Security
 
-- [~] JWT login/logout exists; no refresh tokens (stateless only).
-- [ ] **Refresh token / silent re-auth** so sessions don't hard-expire mid-use.
+- [x] JWT login/logout exists, now with refresh tokens (see below).
+- [x] **Refresh token / silent re-auth** so sessions don't hard-expire mid-use —
+  short-lived access JWT (30 min) + opaque, rotating refresh tokens (30 days) stored
+  SHA-256-hashed (migration `010-refresh-tokens`). `POST /api/auth/refresh` rotates the
+  token (single-use; reuse of a revoked token revokes the whole family) and mints a new
+  access token; `/logout` revokes it. `RefreshTokenService` also exposes `revokeAllForUser`
+  for future logout-all/session management. Frontend client does single-flight silent
+  refresh on any 401 and retries the original request once. Transport mirrors the existing
+  Bearer-token-in-localStorage model (plus an httpOnly `em_refresh` cookie); the real wins
+  are short access TTL + server-side revocation + reuse detection.
 - [x] **Password reset flow** (token) — `POST /api/auth/forgot-password` issues a
   single-use SHA-256-hashed token (30 min TTL, prior tokens invalidated); `POST
   /api/auth/reset-password` consumes it. Public `/forgot-password` + `/reset-password`
   pages wired from the login screen. Email delivery not yet wired (TODO §7) — the raw
   token is logged server-side for dev delivery. Audit events: `PASSWORD_RESET_REQUEST`,
   `PASSWORD_RESET`. Migration `008-password-reset-tokens`.
-- [ ] **Forced password change on first login** for provisioned accounts.
-- [ ] **Password policy** (min length, complexity) + breach check optional.
-- [ ] **Account lockout / rate limiting** on login (brute-force protection).
+- [x] **Forced password change on first login** for provisioned accounts —
+  `must_change_password` flag (migration `009`) set on admin create/password-reset of
+  another user, cleared when the owner picks their own password (self-service profile or
+  reset-password). Surfaced on `UserDto` / `/api/auth/me`; frontend forces a standalone
+  `/change-password` screen via `RouteGuard` + post-login redirect until cleared.
+- [x] **Password policy** (min length, complexity) — `PasswordPolicy` validator (min 8,
+  upper/lower/digit) enforced on admin user create/update, self-service profile change,
+  and password reset. Breach check still optional/not wired.
+- [x] **Account lockout / rate limiting** on login (brute-force protection) —
+  `LoginAttemptService` tracks consecutive failures per account; 5 failures locks for 15
+  min (`locked_until`, migration `009`), enforced via `AuthenticatedUser#isAccountNonLocked`
+  → `LockedException` mapped to HTTP 423. Counter resets on success; an expired lock starts
+  a fresh window. Login form surfaces the 423 message.
 - [ ] **Email verification** for new accounts.
 - [ ] **2FA / MFA** (TOTP) — at least for ADMIN.
 - [ ] **Self-service profile** (name, avatar, contact info).
 - [ ] **Session management** — view/revoke active sessions; logout-all.
-- [ ] Audit log entries for auth events (login, failed login, password change).
+- [x] Audit log entries for auth events — `LOGIN`, `LOGIN_FAILED`, `ACCOUNT_LOCKED`,
+  `PASSWORD_CHANGE` (joining the existing `PASSWORD_RESET_REQUEST` / `PASSWORD_RESET`).
 
 ---
 

@@ -1,0 +1,39 @@
+databaseChangeLog:
+  - changeSet:
+      id: v1-009-add-failed-login-attempts
+      author: stohirov
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: failed_login_attempts
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: v1-009-add-locked-until
+      author: stohirov
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: locked_until
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: true
+  - changeSet:
+      id: v1-009-add-must-change-password
+      author: stohirov
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: must_change_password
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

@@ -22,15 +22,21 @@ export function RouteGuard({ children, allow }: RouteGuardProps) {
       router.replace("/login");
       return;
     }
-    if (status === "authenticated" && user && !allow.includes(user.role)) {
-      router.replace(roleHomePath(user.role));
+    if (status === "authenticated" && user) {
+      if (user.mustChangePassword) {
+        router.replace("/change-password");
+        return;
+      }
+      if (!allow.includes(user.role)) {
+        router.replace(roleHomePath(user.role));
+      }
     }
   }, [status, user, allow, router]);
 
   if (status === "loading" || status === "unauthenticated") {
     return <LoadingState />;
   }
-  if (user && !allow.includes(user.role)) {
+  if (user && (user.mustChangePassword || !allow.includes(user.role))) {
     return <LoadingState />;
   }
   return <>{children}</>;

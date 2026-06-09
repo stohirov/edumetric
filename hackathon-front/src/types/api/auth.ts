@@ -10,6 +10,8 @@ export interface UserDto {
   language: string;
   notifyEmail: boolean;
   notifyInApp: boolean;
+  // True for provisioned accounts that must set a new password before using the app.
+  mustChangePassword: boolean;
 }
 
 export interface LoginRequest {
@@ -20,6 +22,8 @@ export interface LoginRequest {
 export interface LoginResponse {
   token: string;
   expiresInSeconds: number;
+  // Opaque, rotating refresh token used by the client for silent re-auth.
+  refreshToken: string;
   user: UserDto;
 }
 

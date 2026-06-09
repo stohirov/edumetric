@@ -1,6 +1,7 @@
 package com.edumetric.backend.users;
 
 import com.edumetric.backend.audit.AuditLogService;
+import com.edumetric.backend.auth.PasswordPolicy;
 import com.edumetric.backend.auth.dto.UserDto;
 import com.edumetric.backend.common.exception.ConflictException;
 import com.edumetric.backend.common.exception.ResourceNotFoundException;
@@ -26,6 +27,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
+    private final PasswordPolicy passwordPolicy;
 
     @Transactional(readOnly = true)
     public Page<UserDto> list(Role role, Pageable pageable) {
@@ -46,11 +48,14 @@ public class UserService {
         if (userRepository.existsByEmail(request.email())) {
             throw new ConflictException("Email already in use: " + request.email());
         }
+        passwordPolicy.validate(request.password());
+        // Provisioned by an admin — the account holder must set their own password on first login.
         User user = userRepository.save(User.builder()
                 .email(request.email())
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .fullName(request.fullName())
                 .role(request.role())
+                .mustChangePassword(true)
                 .build());
         auditLogService.log("User", user.getId(), "USER_CREATE",
                 actor == null ? null : actor.id(),
@@ -69,7 +74,10 @@ public class UserService {
             user.setEmail(request.email());
         }
         if (StringUtils.hasText(request.password())) {
+            passwordPolicy.validate(request.password());
             user.setPasswordHash(passwordEncoder.encode(request.password()));
+            // An admin-set password is provisional — force the owner to change it.
+            user.setMustChangePassword(true);
         }
         if (StringUtils.hasText(request.fullName())) {
             user.setFullName(request.fullName());
@@ -93,8 +101,12 @@ public class UserService {
             }
             user.setEmail(request.email());
         }
-        if (StringUtils.hasText(request.password())) {
+        boolean passwordChanged = StringUtils.hasText(request.password());
+        if (passwordChanged) {
+            passwordPolicy.validate(request.password());
             user.setPasswordHash(passwordEncoder.encode(request.password()));
+            // The owner picked this password themselves — clear any forced-change flag.
+            user.setMustChangePassword(false);
         }
         if (StringUtils.hasText(request.fullName())) {
             user.setFullName(request.fullName());
@@ -111,6 +123,11 @@ public class UserService {
         auditLogService.log("User", user.getId(), "PROFILE_UPDATE",
                 actor == null ? null : actor.id(),
                 Map.of("email", user.getEmail()));
+        if (passwordChanged) {
+            auditLogService.log("User", user.getId(), "PASSWORD_CHANGE",
+                    actor == null ? null : actor.id(),
+                    Map.of("email", user.getEmail()));
+        }
         return UserDto.from(user);
     }
 
