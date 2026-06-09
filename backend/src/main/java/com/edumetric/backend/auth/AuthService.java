@@ -1,8 +1,11 @@
 package com.edumetric.backend.auth;
 
 import com.edumetric.backend.auth.dto.AuthResult;
+import com.edumetric.backend.auth.dto.DeviceInfo;
 import com.edumetric.backend.auth.dto.LoginRequest;
+import com.edumetric.backend.auth.dto.SessionDto;
 import com.edumetric.backend.auth.dto.UserDto;
+import java.util.List;
 import com.edumetric.backend.common.exception.ResourceNotFoundException;
 import com.edumetric.backend.security.AuthenticatedUser;
 import com.edumetric.backend.security.JwtTokenProvider;
@@ -33,7 +36,7 @@ public class AuthService {
      * in their own transactions, so this method intentionally runs without a
      * surrounding transaction.
      */
-    public AuthResult login(LoginRequest request) {
+    public AuthResult login(LoginRequest request, DeviceInfo device) {
         Authentication auth;
         try {
             auth = authenticationManager.authenticate(
@@ -51,7 +54,7 @@ public class AuthService {
 
         User user = userRepository.findById(principal.id())
                 .orElseThrow(() -> ResourceNotFoundException.of("User", principal.id()));
-        RefreshTokenService.IssuedToken refresh = refreshTokenService.issue(user.getId());
+        RefreshTokenService.IssuedToken refresh = refreshTokenService.issue(user.getId(), device);
         return buildResult(user, refresh.rawToken());
     }
 
@@ -59,8 +62,8 @@ public class AuthService {
      * Rotates the presented refresh token and mints a fresh access JWT. The old
      * refresh token is single-use — reuse of a revoked token revokes the family.
      */
-    public AuthResult refresh(String rawRefreshToken) {
-        RefreshTokenService.RotationResult rotation = refreshTokenService.rotate(rawRefreshToken);
+    public AuthResult refresh(String rawRefreshToken, DeviceInfo device) {
+        RefreshTokenService.RotationResult rotation = refreshTokenService.rotate(rawRefreshToken, device);
         User user = userRepository.findById(rotation.userId())
                 .orElseThrow(() -> ResourceNotFoundException.of("User", rotation.userId()));
         return buildResult(user, rotation.newToken().rawToken());
@@ -69,6 +72,21 @@ public class AuthService {
     /** Revokes the presented refresh token (logout). */
     public void revokeRefreshToken(String rawRefreshToken) {
         refreshTokenService.revoke(rawRefreshToken);
+    }
+
+    /** Lists the user's active sessions, flagging the caller's current one. */
+    public List<SessionDto> listSessions(Long userId, String currentRawToken) {
+        return refreshTokenService.listSessions(userId, currentRawToken);
+    }
+
+    /** Revokes one of the user's sessions by id. Returns false if it wasn't found. */
+    public boolean revokeSession(Long userId, Long sessionId) {
+        return refreshTokenService.revokeSession(userId, sessionId);
+    }
+
+    /** Revokes all of the user's sessions except the caller's current one. */
+    public int revokeOtherSessions(Long userId, String keepRawToken) {
+        return refreshTokenService.revokeOtherSessions(userId, keepRawToken);
     }
 
     private AuthResult buildResult(User user, String rawRefreshToken) {

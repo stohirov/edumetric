@@ -1,6 +1,8 @@
 package com.edumetric.backend.auth;
 
 import com.edumetric.backend.auth.domain.RefreshToken;
+import com.edumetric.backend.auth.dto.DeviceInfo;
+import com.edumetric.backend.auth.dto.SessionDto;
 import com.edumetric.backend.common.exception.BadRequestException;
 import com.edumetric.backend.config.JwtProperties;
 import java.nio.charset.StandardCharsets;
@@ -11,6 +13,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,9 +48,18 @@ public class RefreshTokenService {
         return Duration.ofDays(jwtProperties.refreshExpirationDays());
     }
 
-    /** Issues a new refresh token for the user. */
+    /** Issues a new refresh token (a new session) for the user. */
     @Transactional
-    public IssuedToken issue(Long userId) {
+    public IssuedToken issue(Long userId, DeviceInfo device) {
+        return issueInternal(userId, device, Instant.now());
+    }
+
+    /**
+     * Persists a fresh token row. {@code sessionStart} is the moment the session
+     * began — preserved across rotations so "signed in since" doesn't reset every
+     * time the access token is silently refreshed.
+     */
+    private IssuedToken issueInternal(Long userId, DeviceInfo device, Instant sessionStart) {
         Instant now = Instant.now();
         String rawToken = generateToken();
         Instant expiresAt = now.plus(ttl());
@@ -55,14 +67,17 @@ public class RefreshTokenService {
                 .userId(userId)
                 .tokenHash(hash(rawToken))
                 .expiresAt(expiresAt)
-                .createdAt(now)
+                .createdAt(sessionStart)
+                .lastUsedAt(now)
+                .userAgent(device != null ? device.userAgent() : null)
+                .ipAddress(device != null ? device.ipAddress() : null)
                 .build());
         return new IssuedToken(rawToken, expiresAt);
     }
 
     /** Validates and rotates the presented token, returning the owner and a replacement. */
     @Transactional
-    public RotationResult rotate(String rawToken) {
+    public RotationResult rotate(String rawToken, DeviceInfo device) {
         if (rawToken == null || rawToken.isBlank()) {
             throw new BadRequestException("Missing refresh token.");
         }
@@ -81,8 +96,50 @@ public class RefreshTokenService {
         }
 
         token.setRevokedAt(now);
-        IssuedToken replacement = issue(token.getUserId());
+        // Carry the original session start forward; refresh device metadata to the latest hop.
+        IssuedToken replacement = issueInternal(token.getUserId(),
+                device != null ? device : new DeviceInfo(token.getUserAgent(), token.getIpAddress()),
+                token.getCreatedAt());
         return new RotationResult(token.getUserId(), replacement);
+    }
+
+    /** Lists a user's active sessions, flagging the one backed by {@code currentRawToken}. */
+    @Transactional(readOnly = true)
+    public List<SessionDto> listSessions(Long userId, String currentRawToken) {
+        String currentHash = currentRawToken != null && !currentRawToken.isBlank()
+                ? hash(currentRawToken)
+                : null;
+        return refreshTokenRepository.findActiveByUser(userId, Instant.now()).stream()
+                .map(t -> SessionDto.from(t, t.getTokenHash().equals(currentHash)))
+                .toList();
+    }
+
+    /** Revokes one of the user's sessions by id. Returns true if a session was revoked. */
+    @Transactional
+    public boolean revokeSession(Long userId, Long sessionId) {
+        return refreshTokenRepository.findByIdAndUserId(sessionId, userId)
+                .filter(t -> t.getRevokedAt() == null)
+                .map(t -> {
+                    t.setRevokedAt(Instant.now());
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    /** Revokes every active session for the user except the one presenting {@code keepRawToken}. */
+    @Transactional
+    public int revokeOtherSessions(Long userId, String keepRawToken) {
+        String keepHash = keepRawToken != null && !keepRawToken.isBlank() ? hash(keepRawToken) : null;
+        Instant now = Instant.now();
+        int revoked = 0;
+        for (RefreshToken token : refreshTokenRepository.findActiveByUser(userId, now)) {
+            if (token.getTokenHash().equals(keepHash)) {
+                continue;
+            }
+            token.setRevokedAt(now);
+            revoked++;
+        }
+        return revoked;
     }
 
     /** Revokes a single token (logout). No-op if the token is unknown or already revoked. */

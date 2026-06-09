@@ -4,6 +4,7 @@ import type {
   LoginRequest,
   LoginResponse,
   ResetPasswordRequest,
+  SessionDto,
   UserDto,
 } from "@/types/api";
 
@@ -26,6 +27,25 @@ export function forgotPassword(payload: ForgotPasswordRequest): Promise<void> {
 /** Consume a reset token and set a new password. */
 export function resetPassword(payload: ResetPasswordRequest): Promise<void> {
   return api.post<void>("/auth/reset-password", payload);
+}
+
+/** List the current user's active sessions (most recently used first). */
+export function listSessions(): Promise<SessionDto[]> {
+  return api.get<SessionDto[]>("/auth/sessions");
+}
+
+/** Revoke a single session by id. Revoking the current session signs this device out. */
+export function revokeSession(id: number): Promise<void> {
+  return api.delete<void>(`/auth/sessions/${id}`);
+}
+
+/** Revoke every session except the current one ("log out everywhere else"). */
+export function revokeOtherSessions(): Promise<{ revoked: number }> {
+  const refreshToken = getRefreshToken();
+  return api.post<{ revoked: number }>(
+    "/auth/sessions/revoke-others",
+    refreshToken ? { refreshToken } : undefined,
+  );
 }
 
 export async function logout(): Promise<void> {

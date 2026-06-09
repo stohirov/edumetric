@@ -27,6 +27,18 @@ export interface LoginResponse {
   user: UserDto;
 }
 
+// Mirrors com.edumetric.backend.auth.dto.SessionDto — one active refresh-token session.
+export interface SessionDto {
+  id: number;
+  // True for the session making the request.
+  current: boolean;
+  userAgent: string | null;
+  ipAddress: string | null;
+  createdAt: string;
+  lastUsedAt: string | null;
+  expiresAt: string;
+}
+
 // Mirrors com.edumetric.backend.auth.dto.ForgotPasswordRequest
 export interface ForgotPasswordRequest {
   email: string;

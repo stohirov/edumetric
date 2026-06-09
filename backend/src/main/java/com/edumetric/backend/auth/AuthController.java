@@ -1,24 +1,31 @@
 package com.edumetric.backend.auth;
 
 import com.edumetric.backend.auth.dto.AuthResult;
+import com.edumetric.backend.auth.dto.DeviceInfo;
 import com.edumetric.backend.auth.dto.ForgotPasswordRequest;
 import com.edumetric.backend.auth.dto.LoginRequest;
 import com.edumetric.backend.auth.dto.LoginResponse;
 import com.edumetric.backend.auth.dto.RefreshRequest;
 import com.edumetric.backend.auth.dto.ResetPasswordRequest;
+import com.edumetric.backend.auth.dto.SessionDto;
 import com.edumetric.backend.auth.dto.UserDto;
 import com.edumetric.backend.common.api.ApiResponse;
 import com.edumetric.backend.security.AuthenticatedUser;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,8 +46,9 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(
             @Valid @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest,
             HttpServletResponse response) {
-        AuthResult result = authService.login(request);
+        AuthResult result = authService.login(request, DeviceInfo.from(httpRequest));
         writeAuthCookies(response, result);
         return ResponseEntity.ok(ApiResponse.ok(result.toLoginResponse()));
     }
@@ -49,11 +57,12 @@ public class AuthController {
     public ResponseEntity<ApiResponse<LoginResponse>> refresh(
             @RequestBody(required = false) RefreshRequest body,
             @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshCookie,
+            HttpServletRequest httpRequest,
             HttpServletResponse response) {
         String rawToken = body != null && StringUtils.hasText(body.refreshToken())
                 ? body.refreshToken()
                 : refreshCookie;
-        AuthResult result = authService.refresh(rawToken);
+        AuthResult result = authService.refresh(rawToken, DeviceInfo.from(httpRequest));
         writeAuthCookies(response, result);
         return ResponseEntity.ok(ApiResponse.ok(result.toLoginResponse()));
     }
@@ -76,6 +85,34 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserDto>> me(@AuthenticationPrincipal AuthenticatedUser principal) {
         return ResponseEntity.ok(ApiResponse.ok(authService.getCurrentUser(principal.id())));
+    }
+
+    @GetMapping("/sessions")
+    public ResponseEntity<ApiResponse<List<SessionDto>>> sessions(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshCookie) {
+        return ResponseEntity.ok(
+                ApiResponse.ok(authService.listSessions(principal.id(), refreshCookie)));
+    }
+
+    @DeleteMapping("/sessions/{id}")
+    public ResponseEntity<ApiResponse<Void>> revokeSession(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @PathVariable Long id) {
+        authService.revokeSession(principal.id(), id);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @PostMapping("/sessions/revoke-others")
+    public ResponseEntity<ApiResponse<Map<String, Integer>>> revokeOtherSessions(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @RequestBody(required = false) RefreshRequest body,
+            @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshCookie) {
+        String keep = body != null && StringUtils.hasText(body.refreshToken())
+                ? body.refreshToken()
+                : refreshCookie;
+        int revoked = authService.revokeOtherSessions(principal.id(), keep);
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("revoked", revoked)));
     }
 
     @PostMapping("/logout")

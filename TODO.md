@@ -66,7 +66,14 @@ These are started but incomplete — close them before building new things.
 - [ ] **Email verification** for new accounts.
 - [ ] **2FA / MFA** (TOTP) — at least for ADMIN.
 - [ ] **Self-service profile** (name, avatar, contact info).
-- [ ] **Session management** — view/revoke active sessions; logout-all.
+- [x] **Session management** — view/revoke active sessions; logout-all. Each
+  refresh-token row is now a session carrying device metadata (User-Agent, IP,
+  `last_used_at`) and a stable `created_at` preserved across rotation (migration
+  `011-session-metadata`). `GET /api/auth/sessions` lists a user's active
+  sessions and flags the caller's current one via the `em_refresh` cookie;
+  `DELETE /api/auth/sessions/{id}` revokes one (ownership-scoped) and `POST
+  /api/auth/sessions/revoke-others` is "log out everywhere else" (keeps the
+  current token). Surfaced as a `SessionsCard` on all three role settings pages.
 - [x] Audit log entries for auth events — `LOGIN`, `LOGIN_FAILED`, `ACCOUNT_LOCKED`,
   `PASSWORD_CHANGE` (joining the existing `PASSWORD_RESET_REQUEST` / `PASSWORD_RESET`).
 

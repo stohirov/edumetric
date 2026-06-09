@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorState, LoadingState } from "@/components/dashboard/data-states";
 import { ProfileSettingsCard } from "@/components/settings/profile-settings-card";
+import { SessionsCard } from "@/components/settings/sessions-card";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useT } from "@/components/providers/locale-provider";
@@ -35,6 +36,7 @@ export default function StudentSettingsPage() {
         />
         <div className="space-y-8 p-8">
           <ProfileSettingsCard />
+          <SessionsCard />
           {query.loading ? (
             <LoadingState />
           ) : query.error ? (

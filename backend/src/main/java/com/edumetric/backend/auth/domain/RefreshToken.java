@@ -50,4 +50,16 @@ public class RefreshToken {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    /** When the token was last presented (issued or rotated). Drives session "last active". */
+    @Column(name = "last_used_at")
+    private Instant lastUsedAt;
+
+    /** Raw User-Agent of the device that obtained the token; null for legacy rows. */
+    @Column(name = "user_agent", length = 512)
+    private String userAgent;
+
+    /** Originating IP (X-Forwarded-For first hop, else remote addr); null for legacy rows. */
+    @Column(name = "ip_address", length = 45)
+    private String ipAddress;
 }
