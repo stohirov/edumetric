@@ -1,7 +1,9 @@
 package com.edumetric.backend.auth;
 
+import com.edumetric.backend.auth.dto.ForgotPasswordRequest;
 import com.edumetric.backend.auth.dto.LoginRequest;
 import com.edumetric.backend.auth.dto.LoginResponse;
+import com.edumetric.backend.auth.dto.ResetPasswordRequest;
 import com.edumetric.backend.auth.dto.UserDto;
 import com.edumetric.backend.common.api.ApiResponse;
 import com.edumetric.backend.security.AuthenticatedUser;
@@ -26,6 +28,7 @@ public class AuthController {
     private static final String COOKIE_NAME = "em_token";
 
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(
@@ -38,6 +41,21 @@ public class AuthController {
         cookie.setMaxAge((int) login.expiresInSeconds());
         response.addCookie(cookie);
         return ResponseEntity.ok(ApiResponse.ok(login));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.requestReset(request.email());
+        // Always 200 — never reveal whether the email is registered.
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request.token(), request.newPassword());
+        return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
     @GetMapping("/me")

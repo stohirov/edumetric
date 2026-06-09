@@ -23,6 +23,17 @@ export interface LoginResponse {
   user: UserDto;
 }
 
+// Mirrors com.edumetric.backend.auth.dto.ForgotPasswordRequest
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+// Mirrors com.edumetric.backend.auth.dto.ResetPasswordRequest
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
 export interface CreateUserRequest {
   email: string;
   password: string;

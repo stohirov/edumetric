@@ -15,7 +15,7 @@ Legend: `[ ]` not started · `[~]` partial / in progress · `[x]` done
 
 These are started but incomplete — close them before building new things.
 
-- [~] **Homework module** — student + teacher flows now wired end-to-end.
+- [x] **Homework module** — student + teacher flows wired end-to-end (committed).
   - [x] MinIO client dependency present in `backend/pom.xml`; `StorageConfig`/`MinioProperties` registered via `@ConfigurationPropertiesScan`.
   - [x] File persistence wired and verified: lazy bucket creation, multipart upload, streaming download (`FileStorageService`) — live MinIO round-trip confirmed working.
   - [x] Teacher-side homework: `AssignmentController` (create/list/update/delete with due dates), teacher submission listing + file download, inline grading. New teacher page at `/teacher/homework`.
@@ -36,7 +36,12 @@ These are started but incomplete — close them before building new things.
 
 - [~] JWT login/logout exists; no refresh tokens (stateless only).
 - [ ] **Refresh token / silent re-auth** so sessions don't hard-expire mid-use.
-- [ ] **Password reset flow** (email link / token) — currently no recovery path.
+- [x] **Password reset flow** (token) — `POST /api/auth/forgot-password` issues a
+  single-use SHA-256-hashed token (30 min TTL, prior tokens invalidated); `POST
+  /api/auth/reset-password` consumes it. Public `/forgot-password` + `/reset-password`
+  pages wired from the login screen. Email delivery not yet wired (TODO §7) — the raw
+  token is logged server-side for dev delivery. Audit events: `PASSWORD_RESET_REQUEST`,
+  `PASSWORD_RESET`. Migration `008-password-reset-tokens`.
 - [ ] **Forced password change on first login** for provisioned accounts.
 - [ ] **Password policy** (min length, complexity) + breach check optional.
 - [ ] **Account lockout / rate limiting** on login (brute-force protection).

@@ -212,7 +212,7 @@ export function LoginFormCard() {
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">{t.login.password}</Label>
                 <Link
-                  href="#"
+                  href="/forgot-password"
                   className="text-xs font-medium text-indigo-600 transition-colors hover:text-indigo-700 dark:text-indigo-400"
                 >
                   {t.login.forgotPassword}

@@ -45,6 +45,41 @@ export const uz = {
     homework: "Uy vazifalari",
     roles: { admin: "Administrator", teacher: "O'qituvchi", student: "O'quvchi" },
   },
+  passwordReset: {
+    forgot: {
+      title: "Parolni unutdingizmi?",
+      subtitle:
+        "Email manzilingizni kiriting — parolni tiklash havolasini yuboramiz.",
+      emailLabel: "Email",
+      submit: "Havola yuborish",
+      submitting: "Yuborilmoqda…",
+      backToLogin: "Kirishga qaytish",
+      successTitle: "Pochtangizni tekshiring",
+      successMsg:
+        "Agar bu email bilan hisob mavjud bo'lsa, tiklash havolasi yuborildi.",
+    },
+    reset: {
+      title: "Yangi parol o'rnating",
+      subtitle: "Avval ishlatmagan kuchli parolni tanlang.",
+      newPassword: "Yangi parol",
+      confirmPassword: "Parolni tasdiqlang",
+      submit: "Parolni tiklash",
+      submitting: "Tiklanmoqda…",
+      backToLogin: "Kirishga qaytish",
+      successTitle: "Parol yangilandi",
+      successMsg: "Parolingiz o'zgartirildi. Endi tizimga kirishingiz mumkin.",
+      goToLogin: "Kirishga o'tish",
+    },
+    errors: {
+      emailRequired: "Email manzilingizni kiriting.",
+      invalidEmail: "To'g'ri email manzil kiriting.",
+      passwordTooShort: "Parol kamida 8 ta belgidan iborat bo'lishi kerak.",
+      passwordsMismatch: "Parollar mos kelmadi.",
+      missingToken: "Bu tiklash havolasi yaroqsiz yoki to'liq emas.",
+      invalidToken: "Bu tiklash havolasi yaroqsiz yoki muddati o'tgan.",
+      generic: "Xatolik yuz berdi. Qaytadan urinib ko'ring.",
+    },
+  },
   login: {
     email: "Email",
     password: "Parol",
