@@ -48,4 +48,16 @@ public class User extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private Role role;
+
+    @Column(nullable = false, length = 8)
+    @Builder.Default
+    private String language = "en";
+
+    @Column(name = "notify_email", nullable = false)
+    @Builder.Default
+    private boolean notifyEmail = true;
+
+    @Column(name = "notify_in_app", nullable = false)
+    @Builder.Default
+    private boolean notifyInApp = true;
 }

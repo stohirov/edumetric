@@ -23,4 +23,13 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     @Query("SELECT DISTINCT l.group.id FROM Lesson l WHERE l.teacher.user.id = :teacherUserId")
     List<Long> findGroupIdsForTeacherUser(@Param("teacherUserId") Long teacherUserId);
+
+    @Query("""
+            SELECT CASE WHEN COUNT(l) > 0 THEN TRUE ELSE FALSE END
+            FROM Lesson l
+            WHERE l.teacher.user.id = :teacherUserId
+              AND l.group.course.id = :courseId
+            """)
+    boolean teacherUserTeachesCourse(
+            @Param("teacherUserId") Long teacherUserId, @Param("courseId") Long courseId);
 }

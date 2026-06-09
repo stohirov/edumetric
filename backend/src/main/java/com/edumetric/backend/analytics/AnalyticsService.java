@@ -7,6 +7,7 @@ import com.edumetric.backend.analytics.dto.AdminDashboardDto.Insight;
 import com.edumetric.backend.analytics.dto.AdminDashboardDto.Kpis;
 import com.edumetric.backend.analytics.dto.AdminDashboardDto.TeacherActivity;
 import com.edumetric.backend.analytics.dto.AdminDashboardDto.TrendPoint;
+import com.edumetric.backend.analytics.dto.AdminDashboardDto.AttendanceWeekPoint;
 import com.edumetric.backend.analytics.dto.AdminDashboardDto.WeeklyActivityPoint;
 import com.edumetric.backend.analytics.dto.AtRiskStudentDto;
 import com.edumetric.backend.analytics.dto.GroupAnalyticsDto;
@@ -38,7 +39,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
+import java.util.Locale;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -88,10 +92,12 @@ public class AnalyticsService {
 
         List<TrendPoint> growthTrend = growthTrend();
         List<WeeklyActivityPoint> weeklyActivity = weeklyActivity();
+        List<AttendanceWeekPoint> attendanceAnalytics = attendanceAnalytics();
         List<Insight> insights = institutionInsights(all, avg, atRisk);
 
         return new AdminDashboardDto(
-                kpis, histogram, topGroups, activity, growthTrend, weeklyActivity, insights);
+                kpis, histogram, topGroups, activity, growthTrend, weeklyActivity,
+                attendanceAnalytics, insights);
     }
 
     @Transactional(readOnly = true)
@@ -340,6 +346,58 @@ public class AnalyticsService {
             long[] row = agg.get(d);
             int engagement = row[0] == 0 ? 0 : (int) Math.round(100.0 * row[2] / row[0]);
             out.add(new WeeklyActivityPoint(d.name(), row[0], row[1], engagement));
+        }
+        return out;
+    }
+
+    private static final int ATTENDANCE_WEEKS = 8;
+    private static final DateTimeFormatter WEEK_LABEL =
+            DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH);
+
+    private List<AttendanceWeekPoint> attendanceAnalytics() {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        LocalDate firstWeekStart = today
+                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                .minusWeeks(ATTENDANCE_WEEKS - 1L);
+        Instant since = firstWeekStart.atStartOfDay(ZoneOffset.UTC).toInstant();
+
+        List<Attendance> records = attendanceRepository.findAllByMarkedAtAfter(since);
+
+        // Ordered buckets keyed by the Monday that starts each week.
+        Map<LocalDate, long[]> buckets = new LinkedHashMap<>();
+        for (int i = 0; i < ATTENDANCE_WEEKS; i++) {
+            buckets.put(firstWeekStart.plusWeeks(i), new long[4]); // [present, absent, late, excused]
+        }
+        for (Attendance a : records) {
+            if (a.getMarkedAt() == null) continue;
+            LocalDate weekStart = a.getMarkedAt().atOffset(ZoneOffset.UTC).toLocalDate()
+                    .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            long[] row = buckets.get(weekStart);
+            if (row == null) continue;
+            switch (a.getStatus()) {
+                case PRESENT -> row[0]++;
+                case ABSENT -> row[1]++;
+                case LATE -> row[2]++;
+                case EXCUSED -> row[3]++;
+            }
+        }
+
+        List<AttendanceWeekPoint> out = new ArrayList<>(ATTENDANCE_WEEKS);
+        for (Map.Entry<LocalDate, long[]> e : buckets.entrySet()) {
+            long[] row = e.getValue();
+            long present = row[0];
+            long absent = row[1];
+            long late = row[2];
+            long excused = row[3];
+            // Rate = attended (present + late) over sessions that counted toward
+            // attendance (excused absences are not penalised, so they are excluded).
+            long denom = present + late + absent;
+            BigDecimal rate = denom == 0
+                    ? BigDecimal.ZERO
+                    : BigDecimal.valueOf(100.0 * (present + late) / denom)
+                            .setScale(1, RoundingMode.HALF_UP);
+            out.add(new AttendanceWeekPoint(
+                    e.getKey().format(WEEK_LABEL), rate, present, absent, late, excused));
         }
         return out;
     }

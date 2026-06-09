@@ -81,10 +81,13 @@ async function request<T>(
   path: string,
   opts: RequestOptions = {},
 ): Promise<T> {
+  const isForm =
+    typeof FormData !== "undefined" && opts.body instanceof FormData;
   const headers: Record<string, string> = {
     Accept: "application/json",
   };
-  if (opts.body !== undefined) {
+  // Let the browser set the multipart boundary itself for FormData bodies.
+  if (opts.body !== undefined && !isForm) {
     headers["Content-Type"] = "application/json";
   }
   const token = opts.token !== undefined ? opts.token : readToken();
@@ -97,7 +100,12 @@ async function request<T>(
     response = await fetch(buildUrl(path, opts.query), {
       method,
       headers,
-      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+      body:
+        opts.body !== undefined
+          ? isForm
+            ? (opts.body as FormData)
+            : JSON.stringify(opts.body)
+          : undefined,
       credentials: "include",
       signal: opts.signal,
       cache: "no-store",

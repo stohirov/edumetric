@@ -37,3 +37,31 @@ export interface BulkGradeRequest {
   assignmentId: number;
   entries: BulkGradeEntry[];
 }
+
+export interface AssignmentDto {
+  id: number;
+  courseId: number;
+  courseName: string;
+  name: string;
+  type: AssignmentType;
+  maxValue: number;
+  weight: number;
+  dueDate: string | null; // LocalDate ISO (yyyy-MM-dd)
+}
+
+export interface CreateAssignmentRequest {
+  courseId: number;
+  name: string;
+  type: AssignmentType;
+  maxValue: number;
+  weight?: number;
+  dueDate?: string | null;
+}
+
+export interface UpdateAssignmentRequest {
+  name?: string;
+  type?: AssignmentType;
+  maxValue?: number;
+  weight?: number;
+  dueDate?: string | null;
+}

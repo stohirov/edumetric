@@ -4,6 +4,7 @@ import type {
   PageParams,
   PageResponse,
   Role,
+  UpdateUserRequest,
   UserDto,
 } from "@/types/api";
 
@@ -16,4 +17,11 @@ export function listUsers(
 
 export function createUser(payload: CreateUserRequest): Promise<UserDto> {
   return api.post<UserDto>("/users", payload);
+}
+
+export function updateUser(
+  id: number,
+  payload: UpdateUserRequest,
+): Promise<UserDto> {
+  return api.patch<UserDto>(`/users/${id}`, payload);
 }

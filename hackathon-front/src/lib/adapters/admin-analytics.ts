@@ -135,19 +135,26 @@ function adaptTeacherActivity(d: AdminDashboardDto): TeacherActivityItem[] {
   }));
 }
 
+function adaptAttendanceAnalytics(
+  d: AdminDashboardDto,
+): AttendanceAnalyticsPoint[] {
+  return (d.attendanceAnalytics ?? []).map((p) => ({
+    week: p.week,
+    rate: Number(p.rate),
+    present: p.present,
+    absent: p.absent,
+    late: p.late,
+  }));
+}
+
 export function adaptAdminAnalytics(
   dashboard: AdminDashboardDto,
   atRisk: AtRiskStudentDto[],
 ): AdminAnalyticsData {
-  // Attendance analytics requires per-week aggregates the backend doesn't
-  // expose today — leave the chart empty so it renders an empty state rather
-  // than fake numbers.
-  const attendanceAnalytics: AttendanceAnalyticsPoint[] = [];
-
   return {
     kpis: adaptKpis(dashboard),
     scoreDistribution: adaptScoreDistribution(dashboard),
-    attendanceAnalytics,
+    attendanceAnalytics: adaptAttendanceAnalytics(dashboard),
     topGroups: adaptTopGroups(dashboard),
     atRiskStudents: adaptAtRisk(atRisk),
     teacherActivity: adaptTeacherActivity(dashboard),

@@ -7,6 +7,9 @@ export interface UserDto {
   email: string;
   fullName: string;
   role: Role;
+  language: string;
+  notifyEmail: boolean;
+  notifyInApp: boolean;
 }
 
 export interface LoginRequest {
@@ -25,4 +28,23 @@ export interface CreateUserRequest {
   password: string;
   fullName: string;
   role: Role;
+}
+
+// Mirrors com.edumetric.backend.users.dto.UpdateUserRequest — all fields optional.
+export interface UpdateUserRequest {
+  email?: string;
+  password?: string;
+  fullName?: string;
+  role?: Role;
+}
+
+// Mirrors com.edumetric.backend.users.dto.UpdateProfileRequest — self-service,
+// cannot change role. All fields optional.
+export interface UpdateProfileRequest {
+  email?: string;
+  password?: string;
+  fullName?: string;
+  language?: string;
+  notifyEmail?: boolean;
+  notifyInApp?: boolean;
 }

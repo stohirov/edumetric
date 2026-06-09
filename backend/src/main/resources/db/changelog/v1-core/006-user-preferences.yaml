@@ -1,0 +1,26 @@
+databaseChangeLog:
+  - changeSet:
+      id: v1-006-add-user-preferences
+      author: stohirov
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: language
+                  type: VARCHAR(8)
+                  defaultValue: en
+                  constraints:
+                    nullable: false
+              - column:
+                  name: notify_email
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: notify_in_app
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false

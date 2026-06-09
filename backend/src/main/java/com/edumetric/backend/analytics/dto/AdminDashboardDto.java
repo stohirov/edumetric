@@ -10,6 +10,7 @@ public record AdminDashboardDto(
         List<TeacherActivity> teacherActivity,
         List<TrendPoint> growthTrend,
         List<WeeklyActivityPoint> weeklyActivity,
+        List<AttendanceWeekPoint> attendanceAnalytics,
         List<Insight> insights) {
 
     public record Kpis(
@@ -36,6 +37,14 @@ public record AdminDashboardDto(
             long sessions,
             long submissions,
             int engagementPercent) {}
+
+    public record AttendanceWeekPoint(
+            String week,
+            BigDecimal rate,
+            long present,
+            long absent,
+            long late,
+            long excused) {}
 
     public record Insight(
             String id,

@@ -21,4 +21,15 @@ public class TeacherScope {
             throw new ForbiddenException("Not authorized for student " + studentId);
         }
     }
+
+    /** Asserts the actor may manage assignments/submissions for the given course. */
+    public void assertTeachesCourse(AuthenticatedUser actor, Long courseId) {
+        if (actor.role() == Role.ADMIN) {
+            return;
+        }
+        if (actor.role() != Role.TEACHER
+                || !lessonRepository.teacherUserTeachesCourse(actor.id(), courseId)) {
+            throw new ForbiddenException("Not authorized for course " + courseId);
+        }
+    }
 }

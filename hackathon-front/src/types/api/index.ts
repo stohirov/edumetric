@@ -12,3 +12,5 @@ export * from "./grades";
 export * from "./behavior";
 export * from "./metrics";
 export * from "./analytics";
+export * from "./homework";
+export * from "./settings";

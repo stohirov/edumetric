@@ -4,6 +4,7 @@ import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorState, LoadingState } from "@/components/dashboard/data-states";
+import { ProfileSettingsCard } from "@/components/settings/profile-settings-card";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useT } from "@/components/providers/locale-provider";
@@ -32,7 +33,8 @@ export default function StudentSettingsPage() {
           title={t.pages.studentSettings.title}
           description={t.pages.studentSettings.desc}
         />
-        <div className="p-8">
+        <div className="space-y-8 p-8">
+          <ProfileSettingsCard />
           {query.loading ? (
             <LoadingState />
           ) : query.error ? (

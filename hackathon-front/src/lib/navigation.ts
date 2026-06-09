@@ -31,6 +31,7 @@ export function getNavSectionsForRole(role: UserRole, t: Dictionary): NavSection
             { title: t.nav.myGrowth, href: "/student/growth", icon: "TrendingUp" },
             { title: t.nav.attendance, href: "/student/attendance", icon: "CalendarCheck" },
             { title: t.nav.grades, href: "/student/grades", icon: "GraduationCap" },
+            { title: t.nav.homework, href: "/student/homework", icon: "ClipboardCheck" },
             { title: t.nav.settings, href: "/student/settings", icon: "Settings" },
           ],
         },
@@ -44,8 +45,10 @@ export function getNavSectionsForRole(role: UserRole, t: Dictionary): NavSection
             { title: t.nav.groups, href: "/teacher/groups", icon: "Layers" },
             { title: t.nav.attendance, href: "/teacher/attendance", icon: "CalendarCheck" },
             { title: t.nav.grades, href: "/teacher/grades", icon: "ClipboardList" },
+            { title: t.nav.homework, href: "/teacher/homework", icon: "ClipboardCheck" },
             { title: t.nav.atRisk, href: "/teacher/at-risk", icon: "AlertTriangle", badge: "3" },
             { title: t.nav.students, href: "/teacher/students", icon: "Users" },
+            { title: t.nav.settings, href: "/teacher/settings", icon: "Settings" },
           ],
         },
       ];

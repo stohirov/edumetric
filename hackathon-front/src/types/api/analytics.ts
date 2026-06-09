@@ -41,6 +41,15 @@ export interface WeeklyActivityPoint {
   engagementPercent: number;
 }
 
+export interface AttendanceWeekPoint {
+  week: string;
+  rate: number;
+  present: number;
+  absent: number;
+  late: number;
+  excused: number;
+}
+
 export interface InstitutionInsightDto {
   id: string;
   title: string;
@@ -56,6 +65,7 @@ export interface AdminDashboardDto {
   teacherActivity: TeacherActivity[];
   growthTrend: TrendPoint[];
   weeklyActivity: WeeklyActivityPoint[];
+  attendanceAnalytics: AttendanceWeekPoint[];
   insights: InstitutionInsightDto[];
 }
 

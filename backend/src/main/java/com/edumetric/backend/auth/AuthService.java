@@ -31,7 +31,9 @@ public class AuthService {
         String token = tokenProvider.generateToken(principal);
         long expiresInSeconds = tokenProvider.getExpiration().toSeconds();
 
-        UserDto userDto = new UserDto(principal.id(), principal.email(), principal.fullName(), principal.role());
+        UserDto userDto = userRepository.findById(principal.id())
+                .map(UserDto::from)
+                .orElseThrow(() -> ResourceNotFoundException.of("User", principal.id()));
         return new LoginResponse(token, expiresInSeconds, userDto);
     }
 

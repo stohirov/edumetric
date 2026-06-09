@@ -2,7 +2,8 @@
 
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Header } from "@/components/layout/header";
-import { SectionPlaceholder } from "@/components/dashboard/section-placeholder";
+import { ProfileSettingsCard } from "@/components/settings/profile-settings-card";
+import { InstitutionSettingsCard } from "@/components/settings/institution-settings-card";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useT } from "@/components/providers/locale-provider";
@@ -21,10 +22,10 @@ export default function AdminSettingsPage() {
           title={t.pages.adminSettings.title}
           description={t.pages.adminSettings.desc}
         />
-        <SectionPlaceholder
-          title={t.pages.adminSettings.card}
-          description="Branding, SSO, API keys, and notification policies."
-        />
+        <div className="space-y-8 p-8">
+          <ProfileSettingsCard />
+          <InstitutionSettingsCard />
+        </div>
       </DashboardShell>
     </RouteGuard>
   );

@@ -8,6 +8,7 @@ import com.edumetric.backend.security.AuthenticatedUser;
 import com.edumetric.backend.users.domain.Role;
 import com.edumetric.backend.users.domain.User;
 import com.edumetric.backend.users.dto.CreateUserRequest;
+import com.edumetric.backend.users.dto.UpdateProfileRequest;
 import com.edumetric.backend.users.dto.UpdateUserRequest;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -79,6 +80,37 @@ public class UserService {
         auditLogService.log("User", user.getId(), "USER_UPDATE",
                 actor == null ? null : actor.id(),
                 Map.of("email", user.getEmail(), "role", user.getRole().name()));
+        return UserDto.from(user);
+    }
+
+    @Transactional
+    public UserDto updateOwnProfile(Long id, UpdateProfileRequest request, AuthenticatedUser actor) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> ResourceNotFoundException.of("User", id));
+        if (StringUtils.hasText(request.email()) && !request.email().equals(user.getEmail())) {
+            if (userRepository.existsByEmail(request.email())) {
+                throw new ConflictException("Email already in use: " + request.email());
+            }
+            user.setEmail(request.email());
+        }
+        if (StringUtils.hasText(request.password())) {
+            user.setPasswordHash(passwordEncoder.encode(request.password()));
+        }
+        if (StringUtils.hasText(request.fullName())) {
+            user.setFullName(request.fullName());
+        }
+        if (StringUtils.hasText(request.language())) {
+            user.setLanguage(request.language());
+        }
+        if (request.notifyEmail() != null) {
+            user.setNotifyEmail(request.notifyEmail());
+        }
+        if (request.notifyInApp() != null) {
+            user.setNotifyInApp(request.notifyInApp());
+        }
+        auditLogService.log("User", user.getId(), "PROFILE_UPDATE",
+                actor == null ? null : actor.id(),
+                Map.of("email", user.getEmail()));
         return UserDto.from(user);
     }
 

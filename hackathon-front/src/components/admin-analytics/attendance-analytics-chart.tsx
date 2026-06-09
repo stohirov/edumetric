@@ -20,6 +20,16 @@ interface AttendanceAnalyticsChartProps {
 }
 
 export function AttendanceAnalyticsChart({ data, className }: AttendanceAnalyticsChartProps) {
+  const hasData = data.length > 0;
+  const avgRate = hasData
+    ? data.reduce((a, b) => a + b.rate, 0) / data.length
+    : 0;
+
+  // Fit the Y-axis to the actual range so real-world rates aren't clipped.
+  const rates = data.map((d) => d.rate);
+  const minRate = hasData ? Math.max(0, Math.floor(Math.min(...rates) - 5)) : 0;
+  const maxRate = hasData ? Math.min(100, Math.ceil(Math.max(...rates) + 5)) : 100;
+
   return (
     <Card interactive className={cn("h-full", className)}>
       <CardHeader>
@@ -27,6 +37,14 @@ export function AttendanceAnalyticsChart({ data, className }: AttendanceAnalytic
         <CardDescription>Weekly attendance rate and volume trends</CardDescription>
       </CardHeader>
       <CardContent className="min-w-0">
+        {!hasData ? (
+          <div className="flex h-[280px] flex-col items-center justify-center text-center">
+            <p className="text-sm font-medium text-slate-500">No attendance recorded yet</p>
+            <p className="mt-1 text-xs text-slate-400">
+              Weekly trends appear once attendance is marked.
+            </p>
+          </div>
+        ) : (
         <ResponsiveContainer width="100%" height={280} minWidth={0} minHeight={280}>
           <ComposedChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
             <defs>
@@ -44,7 +62,7 @@ export function AttendanceAnalyticsChart({ data, className }: AttendanceAnalytic
             />
             <YAxis
               yAxisId="rate"
-              domain={[88, 98]}
+              domain={[minRate, maxRate]}
               axisLine={false}
               tickLine={false}
               tick={{ fill: "#94a3b8", fontSize: 11 }}
@@ -90,18 +108,18 @@ export function AttendanceAnalyticsChart({ data, className }: AttendanceAnalytic
             />
           </ComposedChart>
         </ResponsiveContainer>
-        <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-500">
-          <span className="flex items-center gap-2">
-            <span className="h-0.5 w-4 rounded bg-emerald-500" />
-            Attendance rate %
-          </span>
-          <span className="tabular-nums text-slate-400">
-            Avg. {(
-              data.reduce((a, b) => a + b.rate, 0) / data.length
-            ).toFixed(1)}
-            % this period
-          </span>
-        </div>
+        )}
+        {hasData ? (
+          <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-500">
+            <span className="flex items-center gap-2">
+              <span className="h-0.5 w-4 rounded bg-emerald-500" />
+              Attendance rate %
+            </span>
+            <span className="tabular-nums text-slate-400">
+              Avg. {avgRate.toFixed(1)}% this period
+            </span>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

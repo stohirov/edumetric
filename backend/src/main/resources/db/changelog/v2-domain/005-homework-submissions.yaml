@@ -1,0 +1,89 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-005-create-homework-submissions
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: homework_submissions
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: student_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_homework_student
+                    references: students(id)
+              - column:
+                  name: assignment_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_homework_assignment
+                    references: assignments(id)
+              - column:
+                  name: comment
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: file_object_key
+                  type: VARCHAR(512)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: file_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: file_size
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: content_type
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: submitted_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: v2-005-homework-unique-constraint
+      author: stohirov
+      changes:
+        - addUniqueConstraint:
+            tableName: homework_submissions
+            columnNames: student_id, assignment_id
+            constraintName: uk_homework_student_assignment
+  - changeSet:
+      id: v2-005-homework-index-student
+      author: stohirov
+      changes:
+        - createIndex:
+            tableName: homework_submissions
+            indexName: idx_homework_student
+            columns:
+              - column:
+                  name: student_id
