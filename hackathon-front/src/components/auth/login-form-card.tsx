@@ -23,6 +23,7 @@ import { useT } from "@/components/providers/locale-provider";
 import { useAuth, roleHomePath } from "@/components/providers/auth-provider";
 import { ApiError } from "@/lib/api";
 import type { UserRole } from "@/types";
+import type { UserDto } from "@/types/api";
 
 type FormError = {
   title: string;
@@ -36,7 +37,6 @@ function validateEmail(email: string) {
 export function LoginFormCard() {
   const router = useRouter();
   const t = useT();
-  const { login } = useAuth();
   const demoAccounts = useMemo(
     () => [
       {
@@ -63,6 +63,7 @@ export function LoginFormCard() {
     ],
     [t],
   );
+  const { login, verifyTwoFactor } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -70,6 +71,9 @@ export function LoginFormCard() {
   const [loadingDemo, setLoadingDemo] = useState<UserRole | null>(null);
   const [error, setError] = useState<FormError>(null);
   const [shake, setShake] = useState(false);
+  // When set, the password step succeeded but 2FA is required: show the code step.
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
 
   const triggerError = (title: string, message: string) => {
     setError({ title, message });
@@ -81,10 +85,44 @@ export function LoginFormCard() {
     if (error) setError(null);
   };
 
-  const performLogin = async (loginEmail: string, loginPassword: string) => {
-    const user = await login(loginEmail, loginPassword);
+  const redirectAfterLogin = (user: UserDto) => {
     router.push(user.mustChangePassword ? "/change-password" : roleHomePath(user.role));
-    return user;
+  };
+
+  const performLogin = async (loginEmail: string, loginPassword: string) => {
+    const result = await login(loginEmail, loginPassword);
+    if (result.mfaRequired) {
+      // Hand off to the 2FA code step; clear loading so the form is interactive.
+      setMfaToken(result.mfaToken);
+      setIsLoading(false);
+      setLoadingDemo(null);
+      return;
+    }
+    redirectAfterLogin(result.user);
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    clearError();
+    if (!mfaCode.trim()) {
+      triggerError("Code required", "Enter the 6-digit code from your authenticator app.");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const user = await verifyTwoFactor(mfaToken!, mfaCode.trim());
+      redirectAfterLogin(user);
+    } catch (err) {
+      setIsLoading(false);
+      handleApiError(err);
+    }
+  };
+
+  const cancelMfa = () => {
+    setMfaToken(null);
+    setMfaCode("");
+    setIsLoading(false);
+    clearError();
   };
 
   const handleApiError = (err: unknown) => {
@@ -191,6 +229,55 @@ export function LoginFormCard() {
             </Alert>
           )}
 
+          {mfaToken ? (
+            <form onSubmit={handleVerify} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="mfa-code">Authentication code</Label>
+                <Input
+                  id="mfa-code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  autoFocus
+                  placeholder="123456 or backup code"
+                  value={mfaCode}
+                  onChange={(e) => {
+                    setMfaCode(e.target.value);
+                    clearError();
+                  }}
+                  disabled={isLoading}
+                  className="h-11 tracking-widest"
+                />
+                <p className="text-xs text-theme-muted">
+                  Enter the 6-digit code from your authenticator app, or a backup code.
+                </p>
+              </div>
+              <Button
+                type="submit"
+                className="h-11 w-full text-base shadow-md shadow-indigo-600/20"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Verifying…
+                  </>
+                ) : (
+                  <>
+                    Verify
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </Button>
+              <button
+                type="button"
+                onClick={cancelMfa}
+                disabled={isLoading}
+                className="w-full text-center text-xs font-medium text-theme-muted transition-colors hover:text-theme"
+              >
+                Back to sign in
+              </button>
+            </form>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email">{t.login.email}</Label>
@@ -275,7 +362,10 @@ export function LoginFormCard() {
               )}
             </Button>
           </form>
+          )}
 
+          {!mfaToken && (
+          <>
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-theme" />
@@ -337,6 +427,8 @@ export function LoginFormCard() {
               demo123
             </code>
           </p>
+          </>
+          )}
         </div>
 
         <p className="mt-6 text-center text-xs text-theme-muted">

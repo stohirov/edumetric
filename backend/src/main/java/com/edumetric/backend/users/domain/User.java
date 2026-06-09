@@ -74,4 +74,13 @@ public class User extends AuditableEntity {
     @Column(name = "must_change_password", nullable = false)
     @Builder.Default
     private boolean mustChangePassword = false;
+
+    /** Base32-encoded TOTP shared secret. Set during 2FA setup; may be pending until enabled. */
+    @Column(name = "totp_secret", length = 64)
+    private String totpSecret;
+
+    /** True once the owner has verified a TOTP code and activated two-factor auth. */
+    @Column(name = "totp_enabled", nullable = false)
+    @Builder.Default
+    private boolean totpEnabled = false;
 }

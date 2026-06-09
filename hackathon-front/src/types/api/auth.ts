@@ -12,6 +12,8 @@ export interface UserDto {
   notifyInApp: boolean;
   // True for provisioned accounts that must set a new password before using the app.
   mustChangePassword: boolean;
+  // True when the account has TOTP two-factor authentication enabled.
+  twoFactorEnabled: boolean;
 }
 
 export interface LoginRequest {
@@ -20,11 +22,33 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  token: string;
+  // Null on the MFA-challenge response; populated once login completes.
+  token: string | null;
   expiresInSeconds: number;
   // Opaque, rotating refresh token used by the client for silent re-auth.
-  refreshToken: string;
-  user: UserDto;
+  refreshToken: string | null;
+  user: UserDto | null;
+  // True when the account has 2FA on — complete login via /auth/2fa/verify.
+  mfaRequired: boolean;
+  // Short-lived token redeemed at the verify step (only set when mfaRequired).
+  mfaToken: string | null;
+}
+
+// Mirrors com.edumetric.backend.auth.dto.TwoFactorVerifyRequest
+export interface TwoFactorVerifyRequest {
+  mfaToken: string;
+  code: string;
+}
+
+// Mirrors com.edumetric.backend.auth.dto.TwoFactorSetupResponse
+export interface TwoFactorSetupResponse {
+  secret: string;
+  otpauthUri: string;
+}
+
+// Mirrors com.edumetric.backend.auth.dto.TwoFactorEnabledResponse
+export interface TwoFactorEnabledResponse {
+  backupCodes: string[];
 }
 
 // Mirrors com.edumetric.backend.auth.dto.SessionDto — one active refresh-token session.

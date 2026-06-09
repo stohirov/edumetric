@@ -39,6 +39,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(token) && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 Claims claims = tokenProvider.parse(token);
+                // MFA-challenge tokens authorize only the 2FA verify step, never normal requests.
+                if (JwtTokenProvider.MFA_SCOPE.equals(claims.get(JwtTokenProvider.SCOPE_CLAIM, String.class))) {
+                    chain.doFilter(request, response);
+                    return;
+                }
                 Long userId = Long.parseLong(claims.getSubject());
                 String email = claims.get("email", String.class);
                 String role = claims.get("role", String.class);

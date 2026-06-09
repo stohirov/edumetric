@@ -4,6 +4,7 @@ import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Header } from "@/components/layout/header";
 import { ProfileSettingsCard } from "@/components/settings/profile-settings-card";
 import { SessionsCard } from "@/components/settings/sessions-card";
+import { TwoFactorCard } from "@/components/settings/two-factor-card";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useT } from "@/components/providers/locale-provider";
@@ -24,6 +25,7 @@ export default function TeacherSettingsPage() {
         />
         <div className="space-y-8 p-8">
           <ProfileSettingsCard />
+          <TwoFactorCard />
           <SessionsCard />
         </div>
       </DashboardShell>

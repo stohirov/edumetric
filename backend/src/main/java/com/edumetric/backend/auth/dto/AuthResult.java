@@ -14,6 +14,6 @@ public record AuthResult(
 ) {
 
     public LoginResponse toLoginResponse() {
-        return new LoginResponse(accessToken, accessExpiresInSeconds, refreshToken, user);
+        return new LoginResponse(accessToken, accessExpiresInSeconds, refreshToken, user, false, null);
     }
 }

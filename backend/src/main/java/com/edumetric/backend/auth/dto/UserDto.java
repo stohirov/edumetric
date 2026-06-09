@@ -11,7 +11,8 @@ public record UserDto(
         String language,
         boolean notifyEmail,
         boolean notifyInApp,
-        boolean mustChangePassword
+        boolean mustChangePassword,
+        boolean twoFactorEnabled
 ) {
 
     public static UserDto from(User user) {
@@ -23,6 +24,7 @@ public record UserDto(
                 user.getLanguage(),
                 user.isNotifyEmail(),
                 user.isNotifyInApp(),
-                user.isMustChangePassword());
+                user.isMustChangePassword(),
+                user.isTotpEnabled());
     }
 }

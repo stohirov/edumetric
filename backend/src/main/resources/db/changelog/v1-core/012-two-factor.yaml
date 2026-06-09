@@ -1,0 +1,65 @@
+databaseChangeLog:
+  - changeSet:
+      id: v1-012-users-totp-columns
+      author: stohirov
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: totp_secret
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: totp_enabled
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: v1-012-create-mfa-backup-codes
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: mfa_backup_codes
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_mfa_backup_codes_user
+                    references: users(id)
+              - column:
+                  name: code_hash
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: used_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: v1-012-index-mfa-backup-codes-user
+      author: stohirov
+      changes:
+        - createIndex:
+            tableName: mfa_backup_codes
+            indexName: idx_mfa_backup_codes_user
+            columns:
+              - column:
+                  name: user_id

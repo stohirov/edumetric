@@ -5,14 +5,43 @@ import type {
   LoginResponse,
   ResetPasswordRequest,
   SessionDto,
+  TwoFactorEnabledResponse,
+  TwoFactorSetupResponse,
+  TwoFactorVerifyRequest,
   UserDto,
 } from "@/types/api";
 
 export async function login(payload: LoginRequest): Promise<LoginResponse> {
   const res = await api.post<LoginResponse>("/auth/login", payload);
+  // On the MFA-challenge response there are no tokens yet — wait for /2fa/verify.
+  if (!res.mfaRequired && res.token) {
+    setToken(res.token);
+    setRefreshToken(res.refreshToken);
+  }
+  return res;
+}
+
+/** Second login step for 2FA accounts: redeem the MFA token + a TOTP/backup code. */
+export async function verifyTwoFactor(payload: TwoFactorVerifyRequest): Promise<LoginResponse> {
+  const res = await api.post<LoginResponse>("/auth/2fa/verify", payload);
   setToken(res.token);
   setRefreshToken(res.refreshToken);
   return res;
+}
+
+/** Begin 2FA enrollment: returns a pending secret + otpauth URI to render as a QR. */
+export function setupTwoFactor(): Promise<TwoFactorSetupResponse> {
+  return api.post<TwoFactorSetupResponse>("/auth/2fa/setup");
+}
+
+/** Confirm the first code and activate 2FA; returns one-time backup codes. */
+export function enableTwoFactor(code: string): Promise<TwoFactorEnabledResponse> {
+  return api.post<TwoFactorEnabledResponse>("/auth/2fa/enable", { code });
+}
+
+/** Turn 2FA off (requires a current TOTP or backup code). */
+export function disableTwoFactor(code: string): Promise<void> {
+  return api.post<void>("/auth/2fa/disable", { code });
 }
 
 export function me(): Promise<UserDto> {

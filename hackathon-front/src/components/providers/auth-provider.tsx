@@ -13,10 +13,16 @@ import { useRouter } from "next/navigation";
 import { authApi, ApiError, getToken, setToken } from "@/lib/api";
 import type { Role, UserDto } from "@/types/api";
 
+// Login either completes (user) or stalls awaiting a 2FA code (mfaToken).
+export type LoginResult =
+  | { mfaRequired: false; user: UserDto }
+  | { mfaRequired: true; mfaToken: string };
+
 interface AuthContextValue {
   user: UserDto | null;
   status: "loading" | "authenticated" | "unauthenticated";
-  login: (email: string, password: string) => Promise<UserDto>;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  verifyTwoFactor: (mfaToken: string, code: string) => Promise<UserDto>;
   logout: () => Promise<void>;
   refresh: () => Promise<UserDto | null>;
 }
@@ -70,8 +76,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const login = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string): Promise<LoginResult> => {
       const res = await authApi.login({ email, password });
+      if (res.mfaRequired && res.mfaToken) {
+        return { mfaRequired: true, mfaToken: res.mfaToken };
+      }
+      if (res.user) {
+        setUser(res.user);
+        setStatus("authenticated");
+        return { mfaRequired: false, user: res.user };
+      }
+      throw new ApiError("Unexpected login response", 500);
+    },
+    [],
+  );
+
+  const verifyTwoFactor = useCallback(
+    async (mfaToken: string, code: string): Promise<UserDto> => {
+      const res = await authApi.verifyTwoFactor({ mfaToken, code });
+      if (!res.user) {
+        throw new ApiError("Unexpected verification response", 500);
+      }
       setUser(res.user);
       setStatus("authenticated");
       return res.user;
@@ -90,8 +115,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, status, login, logout, refresh }),
-    [user, status, login, logout, refresh],
+    () => ({ user, status, login, verifyTwoFactor, logout, refresh }),
+    [user, status, login, verifyTwoFactor, logout, refresh],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

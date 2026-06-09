@@ -64,7 +64,19 @@ These are started but incomplete — close them before building new things.
   → `LockedException` mapped to HTTP 423. Counter resets on success; an expired lock starts
   a fresh window. Login form surfaces the 423 message.
 - [ ] **Email verification** for new accounts.
-- [ ] **2FA / MFA** (TOTP) — at least for ADMIN.
+- [x] **2FA / MFA** (TOTP) — opt-in for all roles (covers ADMIN). Self-implemented
+  RFC 6238 TOTP + Base32 (`TotpService`, no new backend dep; verified against the
+  RFC test vectors). Setup → QR (`otpauth://` URI, rendered client-side via
+  `qrcode`) + manual key; `POST /api/auth/2fa/enable` verifies the first code,
+  activates 2FA and returns 10 one-time backup codes (SHA-256-hashed,
+  `mfa_backup_codes` table). Login is now two-step: a 2FA account gets `mfaRequired`
+  + a 5-min `scope=MFA` challenge JWT (rejected everywhere except
+  `/api/auth/2fa/verify`, which accepts a TOTP **or** backup code and issues the
+  real tokens). `POST /api/auth/2fa/disable` re-verifies before clearing.
+  Migration `012-two-factor` (users `totp_secret`/`totp_enabled` + backup-codes
+  table); `twoFactorEnabled` on `UserDto`/`/me`. `TwoFactorCard` on all settings
+  pages; login form shows the code step. Audit: `MFA_ENABLED`, `MFA_DISABLED`.
+  _Mandatory enforcement for ADMIN left as a follow-up (currently opt-in)._
 - [ ] **Self-service profile** (name, avatar, contact info).
 - [x] **Session management** — view/revoke active sessions; logout-all. Each
   refresh-token row is now a session carrying device metadata (User-Agent, IP,

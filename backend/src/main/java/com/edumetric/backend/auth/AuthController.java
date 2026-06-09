@@ -8,6 +8,7 @@ import com.edumetric.backend.auth.dto.LoginResponse;
 import com.edumetric.backend.auth.dto.RefreshRequest;
 import com.edumetric.backend.auth.dto.ResetPasswordRequest;
 import com.edumetric.backend.auth.dto.SessionDto;
+import com.edumetric.backend.auth.dto.TwoFactorVerifyRequest;
 import com.edumetric.backend.auth.dto.UserDto;
 import com.edumetric.backend.common.api.ApiResponse;
 import com.edumetric.backend.security.AuthenticatedUser;
@@ -48,7 +49,22 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request,
             HttpServletRequest httpRequest,
             HttpServletResponse response) {
-        AuthResult result = authService.login(request, DeviceInfo.from(httpRequest));
+        AuthService.LoginOutcome outcome = authService.login(request, DeviceInfo.from(httpRequest));
+        if (outcome.mfaRequired()) {
+            // Password verified, but 2FA is on — no cookies yet; client must hit /2fa/verify.
+            return ResponseEntity.ok(ApiResponse.ok(LoginResponse.mfaChallenge(outcome.mfaToken())));
+        }
+        writeAuthCookies(response, outcome.authResult());
+        return ResponseEntity.ok(ApiResponse.ok(outcome.authResult().toLoginResponse()));
+    }
+
+    @PostMapping("/2fa/verify")
+    public ResponseEntity<ApiResponse<LoginResponse>> verifyTwoFactor(
+            @Valid @RequestBody TwoFactorVerifyRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse response) {
+        AuthResult result = authService.completeMfaLogin(
+                request.mfaToken(), request.code(), DeviceInfo.from(httpRequest));
         writeAuthCookies(response, result);
         return ResponseEntity.ok(ApiResponse.ok(result.toLoginResponse()));
     }
