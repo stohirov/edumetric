@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { profileApi } from "@/lib/api";
+import { authApi, profileApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -56,6 +56,10 @@ export function ProfileSettingsCard() {
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Email-verification prompt — shown until the owner confirms their address.
+  const [verifyBusy, setVerifyBusy] = useState(false);
+  const [verifySent, setVerifySent] = useState(false);
 
   const avatarUrl = user?.avatarUrl ?? null;
   useEffect(() => {
@@ -110,6 +114,17 @@ export function ProfileSettingsCard() {
       setAvatarError(errorMessage(e, "Failed to remove avatar"));
     } finally {
       setAvatarBusy(false);
+    }
+  };
+
+  const onResendVerification = async () => {
+    setVerifyBusy(true);
+    try {
+      await authApi.resendVerification({ email: user.email });
+    } finally {
+      // The endpoint always succeeds; show confirmation regardless.
+      setVerifySent(true);
+      setVerifyBusy(false);
     }
   };
 
@@ -173,6 +188,30 @@ export function ProfileSettingsCard() {
       </CardHeader>
       <CardContent>
         <form onSubmit={submit} className="space-y-4 max-w-lg">
+          {!user.emailVerified ? (
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+              {verifySent ? (
+                <p>
+                  Verification link sent to <span className="font-medium">{user.email}</span>. Check
+                  your inbox to confirm your address.
+                </p>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span>Your email address isn&apos;t verified yet.</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={verifyBusy}
+                    onClick={onResendVerification}
+                  >
+                    {verifyBusy ? "Sending…" : "Send verification email"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : null}
+
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-indigo-100 text-lg font-semibold text-indigo-700">
               {showAvatar ? (

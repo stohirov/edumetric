@@ -14,6 +14,8 @@ export interface UserDto {
   mustChangePassword: boolean;
   // True when the account has TOTP two-factor authentication enabled.
   twoFactorEnabled: boolean;
+  // True once the owner has confirmed ownership of their email address.
+  emailVerified: boolean;
   // Optional self-service contact info.
   phone: string | null;
   address: string | null;
@@ -77,6 +79,16 @@ export interface ForgotPasswordRequest {
 export interface ResetPasswordRequest {
   token: string;
   newPassword: string;
+}
+
+// Mirrors com.edumetric.backend.auth.dto.VerifyEmailRequest
+export interface VerifyEmailRequest {
+  token: string;
+}
+
+// Mirrors com.edumetric.backend.auth.dto.ResendVerificationRequest
+export interface ResendVerificationRequest {
+  email: string;
 }
 
 export interface CreateUserRequest {

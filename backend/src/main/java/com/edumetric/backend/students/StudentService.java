@@ -1,5 +1,6 @@
 package com.edumetric.backend.students;
 
+import com.edumetric.backend.auth.EmailVerificationService;
 import com.edumetric.backend.common.exception.ConflictException;
 import com.edumetric.backend.common.exception.ResourceNotFoundException;
 import com.edumetric.backend.groups.GroupRepository;
@@ -27,6 +28,7 @@ public class StudentService {
     private final UserRepository userRepository;
     private final GroupRepository groupRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailVerificationService emailVerificationService;
 
     @Transactional(readOnly = true)
     public Page<StudentDto> list(Pageable pageable) {
@@ -66,6 +68,7 @@ public class StudentService {
                 .fullName(request.fullName())
                 .role(Role.STUDENT)
                 .build());
+        emailVerificationService.issueForNewUser(user);
 
         Student student = Student.builder()
                 .user(user)

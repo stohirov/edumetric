@@ -6,9 +6,11 @@ import com.edumetric.backend.auth.dto.ForgotPasswordRequest;
 import com.edumetric.backend.auth.dto.LoginRequest;
 import com.edumetric.backend.auth.dto.LoginResponse;
 import com.edumetric.backend.auth.dto.RefreshRequest;
+import com.edumetric.backend.auth.dto.ResendVerificationRequest;
 import com.edumetric.backend.auth.dto.ResetPasswordRequest;
 import com.edumetric.backend.auth.dto.SessionDto;
 import com.edumetric.backend.auth.dto.TwoFactorVerifyRequest;
+import com.edumetric.backend.auth.dto.VerifyEmailRequest;
 import com.edumetric.backend.auth.dto.UserDto;
 import com.edumetric.backend.common.api.ApiResponse;
 import com.edumetric.backend.security.AuthenticatedUser;
@@ -43,6 +45,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
+    private final EmailVerificationService emailVerificationService;
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(
@@ -95,6 +98,21 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> resetPassword(
             @Valid @RequestBody ResetPasswordRequest request) {
         passwordResetService.resetPassword(request.token(), request.newPassword());
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<ApiResponse<Void>> verifyEmail(
+            @Valid @RequestBody VerifyEmailRequest request) {
+        emailVerificationService.verify(request.token());
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<ApiResponse<Void>> resendVerification(
+            @Valid @RequestBody ResendVerificationRequest request) {
+        emailVerificationService.resendVerification(request.email());
+        // Always 200 — never reveal whether the email is registered or already verified.
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 

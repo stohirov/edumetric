@@ -13,6 +13,7 @@ public record UserDto(
         boolean notifyInApp,
         boolean mustChangePassword,
         boolean twoFactorEnabled,
+        boolean emailVerified,
         String phone,
         String address,
         String avatarUrl
@@ -32,6 +33,7 @@ public record UserDto(
                 user.isNotifyInApp(),
                 user.isMustChangePassword(),
                 user.isTotpEnabled(),
+                user.isEmailVerified(),
                 user.getPhone(),
                 user.getAddress(),
                 user.getAvatarKey() != null ? AVATAR_PATH : null);

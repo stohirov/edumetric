@@ -75,6 +75,11 @@ public class User extends AuditableEntity {
     @Builder.Default
     private boolean mustChangePassword = false;
 
+    /** True once the owner has confirmed ownership of their email via a verification token. */
+    @Column(name = "email_verified", nullable = false)
+    @Builder.Default
+    private boolean emailVerified = false;
+
     /** Base32-encoded TOTP shared secret. Set during 2FA setup; may be pending until enabled. */
     @Column(name = "totp_secret", length = 64)
     private String totpSecret;

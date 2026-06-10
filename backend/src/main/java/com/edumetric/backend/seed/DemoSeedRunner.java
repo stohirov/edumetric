@@ -205,6 +205,7 @@ public class DemoSeedRunner implements CommandLineRunner {
         return userRepository.save(User.builder()
                 .email(email).fullName(fullName)
                 .passwordHash(passwordEncoder.encode(DEFAULT_PASSWORD))
+                .emailVerified(true)
                 .role(role).build());
     }
 

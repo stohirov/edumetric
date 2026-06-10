@@ -1,6 +1,7 @@
 package com.edumetric.backend.users;
 
 import com.edumetric.backend.audit.AuditLogService;
+import com.edumetric.backend.auth.EmailVerificationService;
 import com.edumetric.backend.auth.PasswordPolicy;
 import com.edumetric.backend.auth.dto.UserDto;
 import com.edumetric.backend.common.exception.BadRequestException;
@@ -41,6 +42,7 @@ public class UserService {
     private final AuditLogService auditLogService;
     private final PasswordPolicy passwordPolicy;
     private final FileStorageService fileStorage;
+    private final EmailVerificationService emailVerificationService;
 
     @Transactional(readOnly = true)
     public Page<UserDto> list(Role role, Pageable pageable) {
@@ -73,6 +75,8 @@ public class UserService {
         auditLogService.log("User", user.getId(), "USER_CREATE",
                 actor == null ? null : actor.id(),
                 Map.of("email", user.getEmail(), "role", user.getRole().name()));
+        // Issue a verification token (logged for dev delivery) so the owner can confirm their email.
+        emailVerificationService.issueForNewUser(user);
         return UserDto.from(user);
     }
 

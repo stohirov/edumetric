@@ -3,12 +3,14 @@ import type {
   ForgotPasswordRequest,
   LoginRequest,
   LoginResponse,
+  ResendVerificationRequest,
   ResetPasswordRequest,
   SessionDto,
   TwoFactorEnabledResponse,
   TwoFactorSetupResponse,
   TwoFactorVerifyRequest,
   UserDto,
+  VerifyEmailRequest,
 } from "@/types/api";
 
 export async function login(payload: LoginRequest): Promise<LoginResponse> {
@@ -56,6 +58,16 @@ export function forgotPassword(payload: ForgotPasswordRequest): Promise<void> {
 /** Consume a reset token and set a new password. */
 export function resetPassword(payload: ResetPasswordRequest): Promise<void> {
   return api.post<void>("/auth/reset-password", payload);
+}
+
+/** Confirm ownership of an email address by consuming a verification token. */
+export function verifyEmail(payload: VerifyEmailRequest): Promise<void> {
+  return api.post<void>("/auth/verify-email", payload);
+}
+
+/** Request a fresh verification email. Always resolves (server never reveals account state). */
+export function resendVerification(payload: ResendVerificationRequest): Promise<void> {
+  return api.post<void>("/auth/resend-verification", payload);
 }
 
 /** List the current user's active sessions (most recently used first). */

@@ -63,7 +63,20 @@ These are started but incomplete — close them before building new things.
   min (`locked_until`, migration `009`), enforced via `AuthenticatedUser#isAccountNonLocked`
   → `LockedException` mapped to HTTP 423. Counter resets on success; an expired lock starts
   a fresh window. Login form surfaces the 423 message.
-- [ ] **Email verification** for new accounts.
+- [x] **Email verification** for new accounts — `email_verified` flag on `users`
+  (migration `014-email-verification`; existing accounts backfilled as verified so
+  they aren't retroactively nagged). New accounts (admin user/student/teacher create)
+  get a single-use SHA-256-hashed token (24 h TTL, prior tokens invalidated) issued
+  on creation — mirrors the password-reset infra (`EmailVerificationService` +
+  `email_verification_tokens` table). `POST /api/auth/verify-email` consumes a token;
+  `POST /api/auth/resend-verification` re-issues (both public; always 200, never
+  revealing account state). Email delivery not yet wired (TODO §7) — the raw token is
+  logged server-side for dev. Verification is **non-blocking** (login still works
+  unverified, since accounts are admin-provisioned and email isn't wired); state is
+  surfaced on `UserDto`/`/me` as `emailVerified`. Public `/verify-email` page (auto-
+  verifies from `?token=`, with a resend form) + an amber "verify your email" prompt
+  with resend on `ProfileSettingsCard` (all roles). Audit: `EMAIL_VERIFICATION_REQUEST`,
+  `EMAIL_VERIFIED`. Demo seed accounts are pre-verified.
 - [x] **2FA / MFA** (TOTP) — opt-in for all roles (covers ADMIN). Self-implemented
   RFC 6238 TOTP + Base32 (`TotpService`, no new backend dep; verified against the
   RFC test vectors). Setup → QR (`otpauth://` URI, rendered client-side via
