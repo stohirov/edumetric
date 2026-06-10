@@ -14,6 +14,11 @@ export interface UserDto {
   mustChangePassword: boolean;
   // True when the account has TOTP two-factor authentication enabled.
   twoFactorEnabled: boolean;
+  // Optional self-service contact info.
+  phone: string | null;
+  address: string | null;
+  // Relative API path (under the /api base) to fetch the avatar image, or null when unset.
+  avatarUrl: string | null;
 }
 
 export interface LoginRequest {
@@ -98,4 +103,7 @@ export interface UpdateProfileRequest {
   language?: string;
   notifyEmail?: boolean;
   notifyInApp?: boolean;
+  // Sent as an empty string to clear the stored value.
+  phone?: string;
+  address?: string;
 }

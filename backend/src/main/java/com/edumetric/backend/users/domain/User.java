@@ -83,4 +83,20 @@ public class User extends AuditableEntity {
     @Column(name = "totp_enabled", nullable = false)
     @Builder.Default
     private boolean totpEnabled = false;
+
+    /** Optional contact phone number, owner-editable via self-service profile. */
+    @Column(length = 32)
+    private String phone;
+
+    /** Optional postal/contact address, owner-editable via self-service profile. */
+    @Column(length = 500)
+    private String address;
+
+    /** MinIO object key for the profile avatar image; null when no avatar is set. */
+    @Column(name = "avatar_key", length = 512)
+    private String avatarKey;
+
+    /** Stored content type of the avatar image, used when streaming it back. */
+    @Column(name = "avatar_content_type", length = 100)
+    private String avatarContentType;
 }

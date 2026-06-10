@@ -77,7 +77,17 @@ These are started but incomplete — close them before building new things.
   table); `twoFactorEnabled` on `UserDto`/`/me`. `TwoFactorCard` on all settings
   pages; login form shows the code step. Audit: `MFA_ENABLED`, `MFA_DISABLED`.
   _Mandatory enforcement for ADMIN left as a follow-up (currently opt-in)._
-- [ ] **Self-service profile** (name, avatar, contact info).
+- [x] **Self-service profile** (name, avatar, contact info) — `users` gains `phone`,
+  `address`, `avatar_key`, `avatar_content_type` (migration `013-user-profile-fields`).
+  `PATCH /api/profile` now accepts `phone`/`address` (clearable — a blank value resets
+  to null; phone validated for shape). Avatar handled out-of-band via multipart:
+  `POST /api/profile/avatar` (image-only allowlist — JPEG/PNG/WebP/GIF, 5 MB cap —
+  stored in MinIO under a stable per-user key so re-upload overwrites), `DELETE
+  /api/profile/avatar`, and `GET /api/profile/avatar` (streams inline). `UserDto`/`/me`
+  expose `phone`, `address`, and `avatarUrl` (relative path, null when unset).
+  `ProfileSettingsCard` (reused across all three roles) gains an avatar uploader with
+  initials fallback + live preview and phone/address fields. Audit: `AVATAR_UPDATE`,
+  `AVATAR_REMOVE`. Reuses the homework `FileStorageService`.
 - [x] **Session management** — view/revoke active sessions; logout-all. Each
   refresh-token row is now a session carrying device metadata (User-Agent, IP,
   `last_used_at`) and a stable `created_at` preserved across rotation (migration

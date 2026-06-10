@@ -12,8 +12,14 @@ public record UserDto(
         boolean notifyEmail,
         boolean notifyInApp,
         boolean mustChangePassword,
-        boolean twoFactorEnabled
+        boolean twoFactorEnabled,
+        String phone,
+        String address,
+        String avatarUrl
 ) {
+
+    /** Relative API path the client fetches the avatar image from (under the /api base). */
+    private static final String AVATAR_PATH = "/profile/avatar";
 
     public static UserDto from(User user) {
         return new UserDto(
@@ -25,6 +31,9 @@ public record UserDto(
                 user.isNotifyEmail(),
                 user.isNotifyInApp(),
                 user.isMustChangePassword(),
-                user.isTotpEnabled());
+                user.isTotpEnabled(),
+                user.getPhone(),
+                user.getAddress(),
+                user.getAvatarKey() != null ? AVATAR_PATH : null);
     }
 }

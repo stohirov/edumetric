@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,12 +19,30 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { isLocale, locales, localeLabels } from "@/lib/i18n/types";
 import type { UpdateProfileRequest } from "@/types/api";
 
+/** First letters of up to two name parts, e.g. "Ada Lovelace" → "AL". */
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function errorMessage(e: unknown, fallback: string): string {
+  if (e instanceof ApiError) return e.details?.join(", ") ?? e.message;
+  if (e instanceof Error) return e.message;
+  return fallback;
+}
+
 export function ProfileSettingsCard() {
   const { user, refresh } = useAuth();
   const { setLocale } = useLocale();
   const [fullName, setFullName] = useState(user?.fullName ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState(user?.phone ?? "");
+  const [address, setAddress] = useState(user?.address ?? "");
   const [language, setLanguage] = useState(user?.language ?? "en");
   const [notifyEmail, setNotifyEmail] = useState(user?.notifyEmail ?? true);
   const [notifyInApp, setNotifyInApp] = useState(user?.notifyInApp ?? true);
@@ -32,7 +50,68 @@ export function ProfileSettingsCard() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Avatar state — loaded lazily from the authenticated /profile/avatar endpoint.
+  const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
+  const [avatarVersion, setAvatarVersion] = useState(0);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const avatarUrl = user?.avatarUrl ?? null;
+  useEffect(() => {
+    if (!avatarUrl) return;
+    let active = true;
+    let objectUrl: string | null = null;
+    profileApi
+      .getAvatar()
+      .then((blob) => {
+        if (!active) return;
+        objectUrl = URL.createObjectURL(blob);
+        setAvatarSrc(objectUrl);
+      })
+      .catch(() => {
+        /* fall back to initials */
+      });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [avatarUrl, avatarVersion]);
+
   if (!user) return null;
+
+  const showAvatar = Boolean(avatarUrl) && Boolean(avatarSrc);
+
+  const onAvatarSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+    setAvatarError(null);
+    setAvatarBusy(true);
+    try {
+      await profileApi.uploadAvatar(file);
+      await refresh();
+      setAvatarVersion((v) => v + 1); // force a re-fetch even if the URL is unchanged
+    } catch (e) {
+      setAvatarError(errorMessage(e, "Failed to upload avatar"));
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
+  const onAvatarRemove = async () => {
+    setAvatarError(null);
+    setAvatarBusy(true);
+    try {
+      await profileApi.deleteAvatar();
+      await refresh();
+      setAvatarSrc(null);
+    } catch (e) {
+      setAvatarError(errorMessage(e, "Failed to remove avatar"));
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -56,6 +135,8 @@ export function ProfileSettingsCard() {
     if (fullName.trim() !== user.fullName) payload.fullName = fullName.trim();
     if (email.trim() !== user.email) payload.email = email.trim();
     if (password) payload.password = password;
+    if (phone.trim() !== (user.phone ?? "")) payload.phone = phone.trim();
+    if (address.trim() !== (user.address ?? "")) payload.address = address.trim();
     if (language !== user.language) payload.language = language;
     if (notifyEmail !== user.notifyEmail) payload.notifyEmail = notifyEmail;
     if (notifyInApp !== user.notifyInApp) payload.notifyInApp = notifyInApp;
@@ -76,13 +157,7 @@ export function ProfileSettingsCard() {
       setPassword("");
       setSuccess(true);
     } catch (e) {
-      const msg =
-        e instanceof ApiError
-          ? (e.details?.join(", ") ?? e.message)
-          : e instanceof Error
-            ? e.message
-            : "Failed to update profile";
-      setError(msg);
+      setError(errorMessage(e, "Failed to update profile"));
     } finally {
       setSubmitting(false);
     }
@@ -93,11 +168,63 @@ export function ProfileSettingsCard() {
       <CardHeader>
         <CardTitle>Profile</CardTitle>
         <CardDescription>
-          Update your account name, email, password, language, and notifications
+          Update your photo, contact info, password, language, and notifications
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={submit} className="space-y-4 max-w-lg">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-indigo-100 text-lg font-semibold text-indigo-700">
+              {showAvatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={avatarSrc as string}
+                  alt="Profile avatar"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span>{initials(user.fullName) || "?"}</span>
+              )}
+            </div>
+            <div className="space-y-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                onChange={onAvatarSelected}
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={avatarBusy}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {avatarBusy ? "Working…" : avatarUrl ? "Change photo" : "Upload photo"}
+                </Button>
+                {avatarUrl ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={avatarBusy}
+                    onClick={onAvatarRemove}
+                  >
+                    Remove
+                  </Button>
+                ) : null}
+              </div>
+              <p className="text-xs text-theme-muted">JPEG, PNG, WebP, or GIF · up to 5 MB</p>
+            </div>
+          </div>
+          {avatarError ? (
+            <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              {avatarError}
+            </div>
+          ) : null}
+
           <div className="space-y-2">
             <Label htmlFor="profile-fullname">Full name</Label>
             <Input
@@ -113,6 +240,25 @@ export function ProfileSettingsCard() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="profile-phone">Phone</Label>
+            <Input
+              id="profile-phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. +1 (555) 123-4567"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="profile-address">Address</Label>
+            <Input
+              id="profile-address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Street, city, country"
             />
           </div>
           <div className="space-y-2">

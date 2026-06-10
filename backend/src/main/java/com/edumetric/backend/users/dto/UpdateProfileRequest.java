@@ -15,6 +15,10 @@ public record UpdateProfileRequest(
         @Size(max = 255) String fullName,
         @Pattern(regexp = "uz|ru|en", message = "language must be one of: uz, ru, en") String language,
         Boolean notifyEmail,
-        Boolean notifyInApp
+        Boolean notifyInApp,
+        @Size(max = 32)
+        @Pattern(regexp = "[+0-9 ()\\-]*", message = "phone may only contain digits, spaces, and + ( ) -")
+        String phone,
+        @Size(max = 500) String address
 ) {
 }

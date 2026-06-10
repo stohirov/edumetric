@@ -1,0 +1,28 @@
+databaseChangeLog:
+  - changeSet:
+      id: v1-013-add-user-profile-fields
+      author: stohirov
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: phone
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: address
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: avatar_key
+                  type: VARCHAR(512)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: avatar_content_type
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: true
