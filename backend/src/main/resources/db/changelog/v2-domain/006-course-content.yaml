@@ -1,0 +1,196 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-006-create-course-modules
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: course_modules
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: course_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_course_modules_course
+                    references: courses(id)
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: summary
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: position
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: published
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: course_modules
+            indexName: idx_course_modules_course
+            columns:
+              - column:
+                  name: course_id
+  - changeSet:
+      id: v2-006-create-course-materials
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: course_materials
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: module_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_course_materials_module
+                    references: course_modules(id)
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: url
+                  type: VARCHAR(2048)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: file_object_key
+                  type: VARCHAR(512)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: file_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: file_size
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: content_type
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: position
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: published
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: ALTER TABLE course_materials ADD CONSTRAINT ck_course_materials_type CHECK (type IN ('PAGE','FILE','LINK','VIDEO'))
+        - createIndex:
+            tableName: course_materials
+            indexName: idx_course_materials_module
+            columns:
+              - column:
+                  name: module_id
+  - changeSet:
+      id: v2-006-create-material-completions
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: material_completions
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: student_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_material_completions_student
+                    references: students(id)
+              - column:
+                  name: material_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_material_completions_material
+                    references: course_materials(id)
+              - column:
+                  name: completed_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: material_completions
+            columnNames: student_id, material_id
+            constraintName: uk_material_completions_student_material
+        - createIndex:
+            tableName: material_completions
+            indexName: idx_material_completions_student
+            columns:
+              - column:
+                  name: student_id

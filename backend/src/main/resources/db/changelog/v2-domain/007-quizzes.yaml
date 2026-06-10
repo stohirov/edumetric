@@ -1,0 +1,291 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-007-create-quizzes
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: quizzes
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: course_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_quizzes_course
+                    references: courses(id)
+              - column:
+                  name: module_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_quizzes_module
+                    references: course_modules(id)
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: time_limit_minutes
+                  type: INT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: max_attempts
+                  type: INT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: pass_score
+                  type: NUMERIC(5,2)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: shuffle_questions
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: published
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: quizzes
+            indexName: idx_quizzes_course
+            columns:
+              - column:
+                  name: course_id
+  - changeSet:
+      id: v2-007-create-quiz-questions
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: quiz_questions
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: quiz_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_quiz_questions_quiz
+                    references: quizzes(id)
+              - column:
+                  name: text
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: points
+                  type: NUMERIC(6,2)
+                  defaultValueNumeric: 1.0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: position
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: ALTER TABLE quiz_questions ADD CONSTRAINT ck_quiz_questions_type CHECK (type IN ('SINGLE_CHOICE','MULTIPLE_CHOICE','TRUE_FALSE','SHORT_ANSWER'))
+        - createIndex:
+            tableName: quiz_questions
+            indexName: idx_quiz_questions_quiz
+            columns:
+              - column:
+                  name: quiz_id
+  - changeSet:
+      id: v2-007-create-quiz-options
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: quiz_options
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: question_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_quiz_options_question
+                    references: quiz_questions(id)
+              - column:
+                  name: text
+                  type: VARCHAR(1024)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: correct
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: position
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: quiz_options
+            indexName: idx_quiz_options_question
+            columns:
+              - column:
+                  name: question_id
+  - changeSet:
+      id: v2-007-create-quiz-attempts
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: quiz_attempts
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: quiz_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_quiz_attempts_quiz
+                    references: quizzes(id)
+              - column:
+                  name: student_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_quiz_attempts_student
+                    references: students(id)
+              - column:
+                  name: started_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: submitted_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: true
+              - column:
+                  name: score
+                  type: NUMERIC(8,2)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: max_score
+                  type: NUMERIC(8,2)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: passed
+                  type: BOOLEAN
+                  constraints:
+                    nullable: true
+        - createIndex:
+            tableName: quiz_attempts
+            indexName: idx_quiz_attempts_quiz_student
+            columns:
+              - column:
+                  name: quiz_id
+              - column:
+                  name: student_id
+  - changeSet:
+      id: v2-007-create-quiz-attempt-answers
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: quiz_attempt_answers
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: attempt_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_quiz_attempt_answers_attempt
+                    references: quiz_attempts(id)
+              - column:
+                  name: question_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_quiz_attempt_answers_question
+                    references: quiz_questions(id)
+              - column:
+                  name: selected_option_ids
+                  type: VARCHAR(512)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: text_answer
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: points_awarded
+                  type: NUMERIC(6,2)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: correct
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: quiz_attempt_answers
+            indexName: idx_quiz_attempt_answers_attempt
+            columns:
+              - column:
+                  name: attempt_id

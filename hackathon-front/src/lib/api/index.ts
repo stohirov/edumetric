@@ -14,5 +14,7 @@ export * as behaviorApi from "./behavior";
 export * as metricsApi from "./metrics";
 export * as analyticsApi from "./analytics";
 export * as homeworkApi from "./homework";
+export * as contentApi from "./content";
+export * as quizzesApi from "./quizzes";
 export * as profileApi from "./profile";
 export * as settingsApi from "./settings";

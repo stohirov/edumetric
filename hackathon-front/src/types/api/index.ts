@@ -13,4 +13,6 @@ export * from "./behavior";
 export * from "./metrics";
 export * from "./analytics";
 export * from "./homework";
+export * from "./content";
+export * from "./quizzes";
 export * from "./settings";

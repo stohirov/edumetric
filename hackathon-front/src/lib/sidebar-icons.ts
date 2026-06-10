@@ -10,6 +10,7 @@ import {
   GraduationCap,
   Layers,
   LayoutDashboard,
+  ListChecks,
   Settings,
   TrendingUp,
   UserCog,
@@ -33,6 +34,7 @@ export const sidebarIconMap: Record<string, LucideIcon> = {
   BarChart3,
   BookOpen,
   CalendarClock,
+  ListChecks,
 };
 
 export function getSidebarIcon(name: string): LucideIcon {

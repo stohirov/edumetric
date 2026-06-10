@@ -132,16 +132,35 @@ These are started but incomplete — close them before building new things.
 
 Currently courses are just metadata (code/name/description). A real LMS needs **content delivery**.
 
-- [ ] **Course content / modules** — structured units, lessons with materials.
-- [ ] **Learning materials** — upload/host documents, slides, PDFs, links, embedded video.
-- [ ] **Lesson content pages** — rich text / markdown content per lesson, not just a scheduled slot.
-- [ ] **Content sequencing & prerequisites** — unlock lessons in order, completion gating.
-- [ ] **Resource library** — shared files per course/group.
+- [x] **Course content / modules** — `content/` slice: `CourseModule` (course-scoped, ordered via
+  `position`, draft/`published`) groups ordered `CourseMaterial`s (migration `v2-domain/006-course-content`).
+  Teacher/admin authoring at `/teacher/content` (course selector → module + material CRUD, publish
+  toggles), scoped via `TeacherScope.assertTeachesCourse`. Students read the published curriculum of
+  their own course at `/student/content`.
+- [x] **Learning materials** — `CourseMaterial` with four `MaterialType`s: `PAGE` (inline markdown),
+  `FILE` (uploaded to MinIO via the shared `FileStorageService`; 50 MB cap + blocked-extension
+  allowlist; `POST/GET /api/materials/{id}/file`), `LINK`, and `VIDEO` (embedded external URL).
+- [x] **Lesson content pages** — rich-text/markdown authored inline as `PAGE` materials (the existing
+  `lessons` table stays a scheduling concept; curriculum content is the new module/material tree).
+- [~] **Content sequencing & prerequisites** — ordering (`position`) + draft/publish gating + per-student
+  completion tracking (`material_completions`, `POST/DELETE /api/content/materials/{id}/complete`) with a
+  progress bar. Hard prerequisite locking (gate lesson N on N-1) not yet enforced.
+- [~] **Resource library** — `FILE` materials are hosted per module/course; no dedicated cross-course
+  shared-library view yet.
 - [ ] **Syllabus** — published course outline with objectives and schedule.
 - [ ] **Course catalog & enrollment** — browse/request enrollment.
-- [ ] **Versioning / drafts** for course content.
-- [ ] **Quizzes / assessments engine** — auto-graded MCQ/short-answer, question bank, attempts, time limits.
-- [ ] **Course completion / certificates**.
+- [~] **Versioning / drafts** for course content — draft/`published` flag per module & material exists;
+  no version history / rollback.
+- [x] **Quizzes / assessments engine** — `quizzes/` slice (migrations `v2-domain/007-quizzes`):
+  `Quiz` → `QuizQuestion` → `QuizOption`, with `QuizAttempt` + `QuizAttemptAnswer`. Question types
+  `SINGLE_CHOICE`/`MULTIPLE_CHOICE`/`TRUE_FALSE`/`SHORT_ANSWER`, all **auto-graded** on submit
+  (`QuizAttemptService`: exact-set match for choices, case-insensitive accepted-answer match for short
+  answer). Per-quiz options: time limit, max attempts (enforced), pass score (% pass/fail), shuffle,
+  draft/publish. Teacher authoring at `/teacher/quizzes` (quiz settings + question builder via
+  `PUT /api/quizzes/{id}/questions`, rejected once attempts exist); students take + see graded results
+  at `/student/quizzes`. Take payloads never expose correct answers.
+- [ ] **Course completion / certificates** — per-material completion % is tracked, but no course-level
+  completion award or certificate generation.
 
 ---
 
