@@ -9,6 +9,7 @@ export * from "./courses";
 export * from "./lessons";
 export * from "./attendance";
 export * from "./grades";
+export * from "./gradebook";
 export * from "./behavior";
 export * from "./metrics";
 export * from "./analytics";

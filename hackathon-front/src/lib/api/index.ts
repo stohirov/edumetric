@@ -10,6 +10,7 @@ export * as lessonsApi from "./lessons";
 export * as attendanceApi from "./attendance";
 export * as gradesApi from "./grades";
 export * as assignmentsApi from "./assignments";
+export * as gradebookApi from "./gradebook";
 export * as behaviorApi from "./behavior";
 export * as metricsApi from "./metrics";
 export * as analyticsApi from "./analytics";

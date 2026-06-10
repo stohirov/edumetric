@@ -2,6 +2,7 @@ package com.edumetric.backend.settings;
 
 import com.edumetric.backend.audit.AuditLogService;
 import com.edumetric.backend.security.AuthenticatedUser;
+import com.edumetric.backend.settings.domain.GradingScale;
 import com.edumetric.backend.settings.domain.InstitutionSettings;
 import com.edumetric.backend.settings.dto.InstitutionSettingsDto;
 import com.edumetric.backend.settings.dto.UpdateInstitutionSettingsRequest;
@@ -49,6 +50,14 @@ public class SettingsService {
                 actor == null ? null : actor.id(),
                 Map.of("institutionName", saved.getInstitutionName()));
         return InstitutionSettingsDto.from(saved);
+    }
+
+    /** The institution-wide grading scale used to present computed grades. */
+    @Transactional(readOnly = true)
+    public GradingScale currentGradingScale() {
+        return settingsRepository.findTopByOrderByIdAsc()
+                .map(InstitutionSettings::getGradingScale)
+                .orElse(GradingScale.PERCENT);
     }
 
     /** Returns the singleton settings row, creating defaults on first access. */

@@ -167,10 +167,28 @@ Currently courses are just metadata (code/name/description). A real LMS needs **
 ## 4. Assignments, Grading & Assessment
 
 - [~] Assignments + grades + bulk grading exist; homework submission exists.
-- [ ] **Unified assignment model** — reconcile `assignments`/`grades` with `homework_submissions` (currently parallel concepts).
+- [~] **Unified assignment model** — reconcile `assignments`/`grades` with `homework_submissions`.
+  The new `gradebook/` slice unifies the two ways a teacher produces marks: direct `Grade`s and
+  graded homework submissions both hang off the same `Assignment`, and the gradebook surfaces a
+  homework submission that is still awaiting a grade as a "submitted" cell. Writes still funnel
+  through the single `POST /api/grades` upsert (the gradebook owns presentation, not mutation), so
+  there's one course grade per student across all assignment types. _Quizzes remain a separate
+  auto-graded surface; folding `quiz_attempts` into the same matrix and a true single submission
+  table are still open._
 - [ ] **Rubrics** — criteria-based grading.
-- [ ] **Grade categories & weighting** per course; configurable grading scales (letter/percent/GPA).
-- [ ] **Gradebook view** — full matrix (students × assignments) for teachers with export.
+- [~] **Grade categories & weighting** per course; configurable grading scales (letter/percent/GPA).
+  Per-assignment `weight` already drives the unified weighted course percentage, and the institution
+  `GradingScale` (`PERCENT`/`LETTER`/`GPA_4`, from settings) is now applied to every computed course
+  total via `GradeScale` (percent → letter/GPA display). Per-course named grade *categories* (e.g.
+  "Homework 40% / Exams 60%") are not modelled yet — weighting is per-assignment.
+- [x] **Gradebook view** — full matrix (students × assignments) for teachers with export.
+  `gradebook/` slice: `GET /api/gradebook?courseId=&groupId=` returns assignment columns × student
+  rows with per-cell grade/submission state, per-column stats (graded/missing/avg), and a weighted
+  per-student course grade rendered in the institution grading scale. Teacher page at `/teacher/grades`
+  is now an editable matrix (click-a-cell inline grade entry → `/api/grades` upsert, optional group
+  filter) with client-side CSV export. `GET /api/gradebook/me` powers a unified student course-grade
+  view at `/student/grades` (course grade + per-assignment standing, no peer data exposed). Scoped via
+  `TeacherScope.assertTeachesCourse`; read-only over existing tables (no migration).
 - [ ] **Feedback & annotations** on submissions (inline comments, returned files).
 - [ ] **Plagiarism/similarity check** hook (optional).
 - [ ] **Peer review** assignments (optional).
