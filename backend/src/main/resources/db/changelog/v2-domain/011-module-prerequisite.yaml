@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-011-module-prerequisite
+      author: stohirov
+      changes:
+        - addColumn:
+            tableName: course_modules
+            columns:
+              - column:
+                  name: prerequisite_module_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: fk_course_modules_prerequisite
+                    references: course_modules(id)

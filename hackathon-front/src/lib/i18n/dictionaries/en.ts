@@ -57,6 +57,11 @@ export const en: Dictionary = {
     terms: "Academic terms",
     children: "My children",
     coTeachers: "Co-teachers",
+    library: "Resource library",
+    syllabus: "Syllabus",
+    catalog: "Course catalog",
+    certificates: "Certificates",
+    enrollmentRequests: "Enrollment requests",
     roles: { admin: "Administrator", teacher: "Teacher", student: "Student", parent: "Parent" },
   },
   notifications: {

@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Download,
   ExternalLink,
+  History,
   Loader2,
   Plus,
   Trash2,
@@ -40,10 +41,13 @@ import { ApiError } from "@/lib/api/client";
 import type {
   MaterialDto,
   MaterialType,
+  MaterialVersionDto,
   ModuleDto,
 } from "@/types/api/content";
 
 const MATERIAL_TYPES: MaterialType[] = ["PAGE", "FILE", "LINK", "VIDEO"];
+
+const NONE_PREREQ = "__none__";
 
 interface CourseOption {
   courseId: number;
@@ -148,6 +152,7 @@ export default function TeacherContentPage() {
                         <ModuleRow
                           key={m.id}
                           module={m}
+                          allModules={modulesQuery.data ?? []}
                           onChanged={modulesQuery.reload}
                         />
                       ))}
@@ -157,6 +162,7 @@ export default function TeacherContentPage() {
                   {activeCourseId != null && (
                     <NewModuleForm
                       courseId={activeCourseId}
+                      existingModules={modulesQuery.data ?? []}
                       onCreated={modulesQuery.reload}
                     />
                   )}
@@ -172,9 +178,11 @@ export default function TeacherContentPage() {
 
 function ModuleRow({
   module,
+  allModules,
   onChanged,
 }: {
   module: ModuleDto;
+  allModules: ModuleDto[];
   onChanged: () => void;
 }) {
   const t = useT();
@@ -184,8 +192,15 @@ function ModuleRow({
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(module.title);
   const [summary, setSummary] = useState(module.summary ?? "");
+  const [prerequisite, setPrerequisite] = useState<string>(
+    module.prerequisiteModuleId != null
+      ? String(module.prerequisiteModuleId)
+      : NONE_PREREQ,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const prereqOptions = allModules.filter((m) => m.id !== module.id);
 
   const togglePublish = async () => {
     setBusy(true);
@@ -208,6 +223,8 @@ function ModuleRow({
       await contentApi.updateModule(module.id, {
         title: title.trim(),
         summary: summary.trim() || null,
+        prerequisiteModuleId:
+          prerequisite === NONE_PREREQ ? 0 : Number(prerequisite),
       });
       setEditing(false);
       onChanged();
@@ -257,6 +274,13 @@ function ModuleRow({
                 {module.summary}
               </p>
             )}
+            {module.prerequisiteModuleId != null && (
+              <p className="mt-0.5 truncate text-xs text-theme-muted">
+                Requires:{" "}
+                {allModules.find((m) => m.id === module.prerequisiteModuleId)
+                  ?.title ?? `#${module.prerequisiteModuleId}`}
+              </p>
+            )}
           </div>
         </button>
         <div className="flex shrink-0 items-center gap-1.5">
@@ -303,6 +327,24 @@ function ModuleRow({
               onChange={(e) => setSummary(e.target.value)}
             />
           </div>
+          {prereqOptions.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Prerequisite module</Label>
+              <Select value={prerequisite} onValueChange={setPrerequisite}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_PREREQ}>None</SelectItem>
+                  {prereqOptions.map((m) => (
+                    <SelectItem key={m.id} value={String(m.id)}>
+                      {m.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <Button
             type="button"
             size="sm"
@@ -358,6 +400,36 @@ function MaterialRow({
   const [url, setUrl] = useState(material.url ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [versions, setVersions] = useState<MaterialVersionDto[] | null>(null);
+
+  const toggleHistory = async () => {
+    if (historyOpen) {
+      setHistoryOpen(false);
+      return;
+    }
+    setHistoryOpen(true);
+    setError(null);
+    try {
+      setVersions(await contentApi.listMaterialVersions(material.id));
+    } catch (e) {
+      setError(errMsg(e, tt.error));
+    }
+  };
+
+  const restore = async (versionId: number) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await contentApi.restoreMaterialVersion(material.id, versionId);
+      setHistoryOpen(false);
+      onChanged();
+    } catch (e) {
+      setError(errMsg(e, tt.error));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const download = async () => {
     try {
@@ -482,6 +554,15 @@ function MaterialRow({
             type="button"
             variant="ghost"
             size="sm"
+            onClick={toggleHistory}
+            title="Version history"
+          >
+            <History className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
             disabled={busy}
             onClick={remove}
             className="text-rose-600 hover:text-rose-700"
@@ -526,6 +607,42 @@ function MaterialRow({
           </Button>
         </div>
       )}
+
+      {historyOpen && (
+        <div className="mt-3 space-y-2 rounded-[10px] border border-theme bg-slate-50/50 p-3">
+          <p className="text-xs font-medium text-theme-muted">Version history</p>
+          {versions === null ? (
+            <p className="text-xs text-theme-muted">Loading…</p>
+          ) : versions.length === 0 ? (
+            <p className="text-xs text-theme-muted">
+              No previous versions yet — edits create history entries.
+            </p>
+          ) : (
+            <ul className="space-y-1.5">
+              {versions.map((v) => (
+                <li
+                  key={v.id}
+                  className="flex items-center justify-between gap-3 text-xs"
+                >
+                  <span className="min-w-0 truncate text-theme">
+                    v{v.versionNo} · {v.title ?? "—"} ·{" "}
+                    {new Date(v.createdAt).toLocaleString()}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => restore(v.id)}
+                  >
+                    Restore
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
       {error && <p className="mt-1 text-xs text-rose-600">{error}</p>}
     </li>
   );
@@ -533,9 +650,11 @@ function MaterialRow({
 
 function NewModuleForm({
   courseId,
+  existingModules,
   onCreated,
 }: {
   courseId: number;
+  existingModules: ModuleDto[];
   onCreated: () => void;
 }) {
   const t = useT();
@@ -543,6 +662,7 @@ function NewModuleForm({
 
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
+  const [prerequisite, setPrerequisite] = useState<string>(NONE_PREREQ);
   const [published, setPublished] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -561,9 +681,12 @@ function NewModuleForm({
         title: title.trim(),
         summary: summary.trim() || null,
         published,
+        prerequisiteModuleId:
+          prerequisite === NONE_PREREQ ? undefined : Number(prerequisite),
       });
       setTitle("");
       setSummary("");
+      setPrerequisite(NONE_PREREQ);
       setPublished(false);
       onCreated();
     } catch (e) {
@@ -595,6 +718,24 @@ function NewModuleForm({
           onChange={(e) => setSummary(e.target.value)}
         />
       </div>
+      {existingModules.length > 0 && (
+        <div className="space-y-1.5">
+          <Label>Prerequisite module</Label>
+          <Select value={prerequisite} onValueChange={setPrerequisite}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE_PREREQ}>None</SelectItem>
+              {existingModules.map((m) => (
+                <SelectItem key={m.id} value={String(m.id)}>
+                  {m.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <label className="flex items-center gap-2 text-sm text-theme">
         <input
           type="checkbox"

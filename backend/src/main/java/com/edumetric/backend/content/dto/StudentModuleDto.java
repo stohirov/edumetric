@@ -8,5 +8,8 @@ public record StudentModuleDto(
         String title,
         String summary,
         int position,
+        // True when a prerequisite module is not yet fully completed — materials are gated.
+        boolean locked,
+        Long prerequisiteModuleId,
         List<StudentMaterialDto> materials) {
 }

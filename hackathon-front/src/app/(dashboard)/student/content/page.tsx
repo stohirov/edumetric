@@ -8,6 +8,7 @@ import {
   ExternalLink,
   FileText,
   Loader2,
+  Lock,
 } from "lucide-react";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Header } from "@/components/layout/header";
@@ -83,23 +84,37 @@ export default function StudentContentPage() {
                 </p>
               ) : (
                 (data?.modules ?? []).map((mod) => (
-                  <Card key={mod.id}>
+                  <Card key={mod.id} className={mod.locked ? "opacity-75" : undefined}>
                     <CardHeader>
-                      <CardTitle>{mod.title}</CardTitle>
+                      <CardTitle className="flex items-center gap-2">
+                        {mod.title}
+                        {mod.locked && (
+                          <Badge variant="secondary" className="gap-1">
+                            <Lock className="h-3 w-3" />
+                            Locked
+                          </Badge>
+                        )}
+                      </CardTitle>
                       {mod.summary && (
                         <CardDescription>{mod.summary}</CardDescription>
                       )}
                     </CardHeader>
                     <CardContent>
-                      <ul className="divide-y divide-slate-100">
-                        {mod.materials.map((mat) => (
-                          <MaterialRow
-                            key={mat.id}
-                            material={mat}
-                            onChanged={query.reload}
-                          />
-                        ))}
-                      </ul>
+                      {mod.locked ? (
+                        <p className="py-2 text-sm text-theme-muted">
+                          Complete the prerequisite module to unlock these materials.
+                        </p>
+                      ) : (
+                        <ul className="divide-y divide-slate-100">
+                          {mod.materials.map((mat) => (
+                            <MaterialRow
+                              key={mat.id}
+                              material={mat}
+                              onChanged={query.reload}
+                            />
+                          ))}
+                        </ul>
+                      )}
                     </CardContent>
                   </Card>
                 ))

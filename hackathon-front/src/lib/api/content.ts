@@ -4,6 +4,7 @@ import type {
   CreateMaterialRequest,
   CreateModuleRequest,
   MaterialDto,
+  MaterialVersionDto,
   ModuleDto,
   UpdateMaterialRequest,
   UpdateModuleRequest,
@@ -47,6 +48,19 @@ export function updateMaterial(
 
 export function deleteMaterial(id: number): Promise<void> {
   return api.delete<void>(`/materials/${id}`);
+}
+
+/** Version history of a material (newest first). */
+export function listMaterialVersions(id: number): Promise<MaterialVersionDto[]> {
+  return api.get<MaterialVersionDto[]>(`/materials/${id}/versions`);
+}
+
+/** Roll a material back to a prior version (the current state is snapshotted first). */
+export function restoreMaterialVersion(
+  id: number,
+  versionId: number,
+): Promise<MaterialDto> {
+  return api.post<MaterialDto>(`/materials/${id}/versions/${versionId}/restore`);
 }
 
 /** Upload (or replace) the file backing a FILE material (multipart). */

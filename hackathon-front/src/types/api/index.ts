@@ -24,3 +24,7 @@ export * from "./invitations";
 export * from "./parents";
 export * from "./teaching";
 export * from "./bulkImport";
+export * from "./library";
+export * from "./syllabus";
+export * from "./catalog";
+export * from "./certificates";

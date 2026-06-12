@@ -1,0 +1,15 @@
+package com.edumetric.backend.certificates;
+
+import com.edumetric.backend.certificates.domain.CourseCompletion;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface CourseCompletionRepository extends JpaRepository<CourseCompletion, Long> {
+
+    List<CourseCompletion> findAllByStudentId(Long studentId);
+
+    Optional<CourseCompletion> findByStudentIdAndCourseId(Long studentId, Long courseId);
+
+    Optional<CourseCompletion> findByCertificateCode(String certificateCode);
+}

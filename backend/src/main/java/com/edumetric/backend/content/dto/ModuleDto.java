@@ -13,6 +13,7 @@ public record ModuleDto(
         String summary,
         int position,
         boolean published,
+        Long prerequisiteModuleId,
         List<MaterialDto> materials) {
 
     public static ModuleDto from(CourseModule module, List<CourseMaterial> materials) {
@@ -24,6 +25,7 @@ public record ModuleDto(
                 module.getSummary(),
                 module.getPosition(),
                 module.isPublished(),
+                module.getPrerequisite() != null ? module.getPrerequisite().getId() : null,
                 materials.stream().map(MaterialDto::from).toList());
     }
 }

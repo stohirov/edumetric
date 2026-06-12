@@ -8,6 +8,7 @@ public record CreateModuleRequest(
         @NotBlank String title,
         String summary,
         Integer position,
-        Boolean published
+        Boolean published,
+        Long prerequisiteModuleId
 ) {
 }

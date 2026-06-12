@@ -10,6 +10,7 @@ import com.edumetric.backend.content.dto.CourseContentDto;
 import com.edumetric.backend.content.dto.CreateMaterialRequest;
 import com.edumetric.backend.content.dto.CreateModuleRequest;
 import com.edumetric.backend.content.dto.MaterialDto;
+import com.edumetric.backend.content.dto.MaterialVersionDto;
 import com.edumetric.backend.content.dto.ModuleDto;
 import com.edumetric.backend.content.dto.StudentMaterialDto;
 import com.edumetric.backend.content.dto.StudentModuleDto;
@@ -54,6 +55,7 @@ public class ContentService {
     private final CourseModuleRepository moduleRepository;
     private final CourseMaterialRepository materialRepository;
     private final MaterialCompletionRepository completionRepository;
+    private final MaterialVersionRepository versionRepository;
     private final CourseRepository courseRepository;
     private final StudentRepository studentRepository;
     private final FileStorageService fileStorage;
@@ -82,6 +84,7 @@ public class ContentService {
                 .course(course)
                 .title(request.title().trim())
                 .summary(trimToNull(request.summary()))
+                .prerequisite(resolvePrerequisite(request.prerequisiteModuleId(), course.getId(), null))
                 .position(position)
                 .published(Boolean.TRUE.equals(request.published()))
                 .build();
@@ -103,6 +106,11 @@ public class ContentService {
         }
         if (request.published() != null) {
             module.setPublished(request.published());
+        }
+        if (request.prerequisiteModuleId() != null) {
+            module.setPrerequisite(request.prerequisiteModuleId() == 0
+                    ? null
+                    : resolvePrerequisite(request.prerequisiteModuleId(), module.getCourse().getId(), module.getId()));
         }
         return ModuleDto.from(module,
                 materialRepository.findAllByModuleIdOrderByPositionAscIdAsc(module.getId()));
@@ -145,6 +153,8 @@ public class ContentService {
     public MaterialDto updateMaterial(Long id, UpdateMaterialRequest request, AuthenticatedUser actor) {
         CourseMaterial material = loadMaterial(id);
         teacherScope.assertTeachesCourse(actor, material.getModule().getCourse().getId());
+        // Snapshot the current state into history before mutating, so edits are reversible.
+        snapshotVersion(material, actor);
         if (request.title() != null && !request.title().isBlank()) {
             material.setTitle(request.title().trim());
         }
@@ -217,11 +227,23 @@ public class ContentService {
                 .map(c -> c.getMaterial().getId())
                 .collect(Collectors.toSet());
 
+        List<CourseModule> publishedModules =
+                moduleRepository.findAllByCourseIdAndPublishedTrueOrderByPositionAscIdAsc(courseId);
+
+        // First pass: which modules has the student fully completed (all published materials done)?
+        Set<Long> fullyCompletedModuleIds = new java.util.HashSet<>();
+        for (CourseModule module : publishedModules) {
+            if (isModuleFullyCompleted(module.getId(), completedIds)) {
+                fullyCompletedModuleIds.add(module.getId());
+            }
+        }
+
         int total = 0;
         int completed = 0;
         List<StudentModuleDto> modules = new java.util.ArrayList<>();
-        for (CourseModule module : moduleRepository
-                .findAllByCourseIdAndPublishedTrueOrderByPositionAscIdAsc(courseId)) {
+        for (CourseModule module : publishedModules) {
+            Long prereqId = module.getPrerequisite() != null ? module.getPrerequisite().getId() : null;
+            boolean locked = prereqId != null && !fullyCompletedModuleIds.contains(prereqId);
             List<StudentMaterialDto> materials = new java.util.ArrayList<>();
             for (CourseMaterial m : materialRepository
                     .findAllByModuleIdAndPublishedTrueOrderByPositionAscIdAsc(module.getId())) {
@@ -233,7 +255,8 @@ public class ContentService {
                 materials.add(StudentMaterialDto.of(m, done));
             }
             modules.add(new StudentModuleDto(
-                    module.getId(), module.getTitle(), module.getSummary(), module.getPosition(), materials));
+                    module.getId(), module.getTitle(), module.getSummary(), module.getPosition(),
+                    locked, prereqId, materials));
         }
         return new CourseContentDto(courseId, courseName, total, completed, modules);
     }
@@ -243,6 +266,7 @@ public class ContentService {
         Student student = resolveStudent(actor);
         CourseMaterial material = loadMaterial(materialId);
         assertVisibleToStudent(material, student);
+        assertNotLocked(material, student);
         if (completionRepository.findByStudentIdAndMaterialId(student.getId(), materialId).isEmpty()) {
             completionRepository.save(MaterialCompletion.builder()
                     .student(student)
@@ -263,7 +287,89 @@ public class ContentService {
         Student student = resolveStudent(actor);
         CourseMaterial material = loadMaterial(materialId);
         assertVisibleToStudent(material, student);
+        assertNotLocked(material, student);
         return openFile(material);
+    }
+
+    // ----- Prerequisite gating & versioning ------------------------------------------
+
+    @Transactional(readOnly = true)
+    public List<MaterialVersionDto> listVersions(Long materialId, AuthenticatedUser actor) {
+        CourseMaterial material = loadMaterial(materialId);
+        teacherScope.assertTeachesCourse(actor, material.getModule().getCourse().getId());
+        return versionRepository.findAllByMaterialIdOrderByVersionNoDesc(materialId).stream()
+                .map(MaterialVersionDto::from)
+                .toList();
+    }
+
+    @Transactional
+    public MaterialDto restoreVersion(Long materialId, Long versionId, AuthenticatedUser actor) {
+        CourseMaterial material = loadMaterial(materialId);
+        teacherScope.assertTeachesCourse(actor, material.getModule().getCourse().getId());
+        com.edumetric.backend.content.domain.MaterialVersion version =
+                versionRepository.findByIdAndMaterialId(versionId, materialId)
+                        .orElseThrow(() -> ResourceNotFoundException.of("Material version", versionId));
+        // Snapshot the current state first so the restore is itself reversible.
+        snapshotVersion(material, actor);
+        material.setTitle(version.getTitle());
+        if (version.getType() != null) {
+            material.setType(version.getType());
+        }
+        material.setContent(version.getContent());
+        material.setUrl(version.getUrl());
+        return MaterialDto.from(material);
+    }
+
+    private void snapshotVersion(CourseMaterial material, AuthenticatedUser actor) {
+        int nextNo = versionRepository.countByMaterialId(material.getId()) + 1;
+        versionRepository.save(com.edumetric.backend.content.domain.MaterialVersion.builder()
+                .material(material)
+                .versionNo(nextNo)
+                .title(material.getTitle())
+                .type(material.getType())
+                .content(material.getContent())
+                .url(material.getUrl())
+                .createdAt(Instant.now())
+                .createdByUserId(actor == null ? null : actor.id())
+                .build());
+    }
+
+    /** Resolves a prerequisite module, requiring it to belong to the same course and not be itself. */
+    private CourseModule resolvePrerequisite(Long prerequisiteModuleId, Long courseId, Long selfModuleId) {
+        if (prerequisiteModuleId == null) {
+            return null;
+        }
+        if (selfModuleId != null && prerequisiteModuleId.equals(selfModuleId)) {
+            throw new BadRequestException("A module cannot be its own prerequisite");
+        }
+        CourseModule prereq = loadModule(prerequisiteModuleId);
+        if (!prereq.getCourse().getId().equals(courseId)) {
+            throw new BadRequestException("Prerequisite must belong to the same course");
+        }
+        return prereq;
+    }
+
+    private boolean isModuleFullyCompleted(Long moduleId, Set<Long> completedIds) {
+        List<CourseMaterial> published =
+                materialRepository.findAllByModuleIdAndPublishedTrueOrderByPositionAscIdAsc(moduleId);
+        if (published.isEmpty()) {
+            return true; // nothing to gate on
+        }
+        return published.stream().allMatch(m -> completedIds.contains(m.getId()));
+    }
+
+    /** Blocks a student from progressing into a module whose prerequisite isn't fully completed. */
+    private void assertNotLocked(CourseMaterial material, Student student) {
+        CourseModule prereq = material.getModule().getPrerequisite();
+        if (prereq == null) {
+            return;
+        }
+        Set<Long> completedIds = completionRepository.findAllByStudentId(student.getId()).stream()
+                .map(c -> c.getMaterial().getId())
+                .collect(Collectors.toSet());
+        if (!isModuleFullyCompleted(prereq.getId(), completedIds)) {
+            throw new BadRequestException("Complete the prerequisite module first");
+        }
     }
 
     // ----- Helpers -------------------------------------------------------------------

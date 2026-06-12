@@ -27,6 +27,7 @@ export interface ModuleDto {
   summary: string | null;
   position: number;
   published: boolean;
+  prerequisiteModuleId: number | null;
   materials: MaterialDto[];
 }
 
@@ -36,6 +37,7 @@ export interface CreateModuleRequest {
   summary?: string | null;
   position?: number;
   published?: boolean;
+  prerequisiteModuleId?: number;
 }
 
 export interface UpdateModuleRequest {
@@ -43,6 +45,21 @@ export interface UpdateModuleRequest {
   summary?: string | null;
   position?: number;
   published?: boolean;
+  // 0 clears the prerequisite.
+  prerequisiteModuleId?: number;
+}
+
+/** A historical snapshot of a material's editable fields. */
+export interface MaterialVersionDto {
+  id: number;
+  materialId: number;
+  versionNo: number;
+  title: string | null;
+  type: MaterialType | null;
+  content: string | null;
+  url: string | null;
+  createdAt: string;
+  createdByUserId: number | null;
 }
 
 export interface CreateMaterialRequest {
@@ -84,6 +101,9 @@ export interface StudentModuleDto {
   title: string;
   summary: string | null;
   position: number;
+  // True when a prerequisite module is not yet fully completed — materials are gated.
+  locked: boolean;
+  prerequisiteModuleId: number | null;
   materials: StudentMaterialDto[];
 }
 

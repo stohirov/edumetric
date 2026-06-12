@@ -55,6 +55,11 @@ export const uz = {
     terms: "O'quv davrlari",
     children: "Farzandlarim",
     coTeachers: "Yordamchi o'qituvchilar",
+    library: "Resurslar kutubxonasi",
+    syllabus: "Kurs dasturi",
+    catalog: "Kurslar katalogi",
+    certificates: "Sertifikatlar",
+    enrollmentRequests: "Ro'yxatga olish so'rovlari",
     roles: { admin: "Administrator", teacher: "O'qituvchi", student: "O'quvchi", parent: "Ota-ona" },
   },
   notifications: {

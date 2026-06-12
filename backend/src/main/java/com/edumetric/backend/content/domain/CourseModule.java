@@ -50,6 +50,14 @@ public class CourseModule {
     @Column(columnDefinition = "TEXT")
     private String summary;
 
+    /**
+     * Optional gating prerequisite: this module stays locked for a student until they have
+     * completed every published material of the referenced module. Self-referential FK.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "prerequisite_module_id")
+    private CourseModule prerequisite;
+
     /** Display order within the course (ascending). */
     @Column(nullable = false)
     private int position;

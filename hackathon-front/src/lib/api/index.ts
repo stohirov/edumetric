@@ -26,3 +26,7 @@ export * as invitationsApi from "./invitations";
 export * as parentsApi from "./parents";
 export * as teachingApi from "./teaching";
 export * as bulkImportApi from "./bulkImport";
+export * as libraryApi from "./library";
+export * as syllabusApi from "./syllabus";
+export * as catalogApi from "./catalog";
+export * as certificatesApi from "./certificates";

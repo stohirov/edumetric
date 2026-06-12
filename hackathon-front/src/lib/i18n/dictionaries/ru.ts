@@ -57,6 +57,11 @@ export const ru: Dictionary = {
     terms: "Учебные периоды",
     children: "Мои дети",
     coTeachers: "Со-преподаватели",
+    library: "Библиотека ресурсов",
+    syllabus: "Программа курса",
+    catalog: "Каталог курсов",
+    certificates: "Сертификаты",
+    enrollmentRequests: "Заявки на зачисление",
     roles: { admin: "Администратор", teacher: "Преподаватель", student: "Студент", parent: "Родитель" },
   },
   notifications: {

@@ -1,0 +1,54 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-013-create-enrollment-requests
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: enrollment_requests
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: student_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_enrollment_requests_student
+                    references: students(id)
+              - column:
+                  name: group_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_enrollment_requests_group
+                    references: groups(id)
+              - column:
+                  name: status
+                  type: VARCHAR(16)
+                  defaultValue: PENDING
+                  constraints:
+                    nullable: false
+              - column:
+                  name: message
+                  type: TEXT
+              - column:
+                  name: decided_by_user_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: fk_enrollment_requests_decided_by
+                    references: users(id)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: decided_at
+                  type: TIMESTAMP WITH TIME ZONE
+        - sql:
+            sql: ALTER TABLE enrollment_requests ADD CONSTRAINT ck_enrollment_requests_status CHECK (status IN ('PENDING','APPROVED','REJECTED'))

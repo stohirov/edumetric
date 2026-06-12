@@ -4,6 +4,8 @@ public record UpdateModuleRequest(
         String title,
         String summary,
         Integer position,
-        Boolean published
+        Boolean published,
+        // 0 clears the prerequisite; a positive id sets it.
+        Long prerequisiteModuleId
 ) {
 }

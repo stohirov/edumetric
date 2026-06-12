@@ -116,6 +116,23 @@ public class ContentController {
         return streamFile(contentService.downloadForTeacher(id, principal));
     }
 
+    @GetMapping("/api/materials/{id}/versions")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<List<com.edumetric.backend.content.dto.MaterialVersionDto>>> listVersions(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        return ResponseEntity.ok(ApiResponse.ok(contentService.listVersions(id, principal)));
+    }
+
+    @PostMapping("/api/materials/{id}/versions/{versionId}/restore")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<MaterialDto>> restoreVersion(
+            @PathVariable Long id,
+            @PathVariable Long versionId,
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        return ResponseEntity.ok(ApiResponse.ok(contentService.restoreVersion(id, versionId, principal)));
+    }
+
     // ----- Student consumption -------------------------------------------------------
 
     @GetMapping("/api/content/me")

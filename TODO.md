@@ -165,15 +165,26 @@ Currently courses are just metadata (code/name/description). A real LMS needs **
   allowlist; `POST/GET /api/materials/{id}/file`), `LINK`, and `VIDEO` (embedded external URL).
 - [x] **Lesson content pages** — rich-text/markdown authored inline as `PAGE` materials (the existing
   `lessons` table stays a scheduling concept; curriculum content is the new module/material tree).
-- [~] **Content sequencing & prerequisites** — ordering (`position`) + draft/publish gating + per-student
-  completion tracking (`material_completions`, `POST/DELETE /api/content/materials/{id}/complete`) with a
-  progress bar. Hard prerequisite locking (gate lesson N on N-1) not yet enforced.
-- [~] **Resource library** — `FILE` materials are hosted per module/course; no dedicated cross-course
-  shared-library view yet.
-- [ ] **Syllabus** — published course outline with objectives and schedule.
-- [ ] **Course catalog & enrollment** — browse/request enrollment.
-- [~] **Versioning / drafts** for course content — draft/`published` flag per module & material exists;
-  no version history / rollback.
+- [x] **Content sequencing & prerequisites** — ordering (`position`) + draft/publish gating + per-student
+  completion tracking, now with **hard prerequisite locking**: a module can reference a
+  `prerequisite_module_id` (migration `v2-domain/011`); a student's module stays `locked` until they
+  complete every published material of its prerequisite (`ContentService` computes lock state and
+  blocks complete/download on locked modules). Teacher module form picks a prerequisite; student
+  content greys out locked modules.
+- [x] **Resource library** — `library/` slice: `GET /api/library` returns a flat cross-course list of all
+  published FILE materials (student → own course, teacher/admin → all). Pages `/teacher/library` and
+  `/student/library` (searchable, download via the existing material endpoints).
+- [x] **Syllabus** — `syllabus/` slice (migration `v2-domain/012`): one `Syllabus` per course
+  (objectives + outline, published flag). Teacher editor `/teacher/syllabus` (`PUT /api/syllabus`),
+  students read the published syllabus of their course at `/student/syllabus` (`GET /api/syllabus/me`).
+- [x] **Course catalog & enrollment** — `catalog/` slice (migration `v2-domain/013`): `GET /api/catalog`
+  lists offerings (groups); students `POST /api/catalog/requests` to request enrollment; admins
+  approve/reject (`/api/catalog/requests/{id}/approve|reject`) — approval calls `EnrollmentService.enroll`.
+  Student page `/student/catalog`, admin page `/admin/enrollment-requests`.
+- [x] **Versioning / drafts** for course content — draft/`published` flags plus full **version history**:
+  every material edit snapshots the prior state into `material_versions` (migration `v2-domain/014`);
+  `GET /api/materials/{id}/versions` + `POST /api/materials/{id}/versions/{versionId}/restore` (rollback,
+  itself snapshotted). Teacher material editor exposes a history panel with restore.
 - [x] **Quizzes / assessments engine** — `quizzes/` slice (migrations `v2-domain/007-quizzes`):
   `Quiz` → `QuizQuestion` → `QuizOption`, with `QuizAttempt` + `QuizAttemptAnswer`. Question types
   `SINGLE_CHOICE`/`MULTIPLE_CHOICE`/`TRUE_FALSE`/`SHORT_ANSWER`, all **auto-graded** on submit
@@ -182,8 +193,11 @@ Currently courses are just metadata (code/name/description). A real LMS needs **
   draft/publish. Teacher authoring at `/teacher/quizzes` (quiz settings + question builder via
   `PUT /api/quizzes/{id}/questions`, rejected once attempts exist); students take + see graded results
   at `/student/quizzes`. Take payloads never expose correct answers.
-- [ ] **Course completion / certificates** — per-material completion % is tracked, but no course-level
-  completion award or certificate generation.
+- [x] **Course completion / certificates** — `certificates/` slice (migration `v2-domain/015`): a student
+  who has completed 100% of their course's published materials can `POST /api/certificates/claim` to mint
+  a `CourseCompletion` with a unique `certificate_code`. `GET /api/certificates/me` lists them; public
+  `GET /api/certificates/verify/{code}` (permitAll) verifies authenticity. Student page
+  `/student/certificates` (claim + award cards) and a public `/verify` page.
 
 ---
 

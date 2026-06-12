@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  Award,
   BarChart3,
   Bell,
   BookOpen,
@@ -10,10 +11,14 @@ import {
   CalendarRange,
   ClipboardCheck,
   ClipboardList,
+  Compass,
+  FileText,
   GraduationCap,
   HeartHandshake,
+  Inbox,
   Layers,
   LayoutDashboard,
+  Library,
   ListChecks,
   MailPlus,
   Megaphone,
@@ -51,6 +56,11 @@ export const sidebarIconMap: Record<string, LucideIcon> = {
   MailPlus,
   Upload,
   UserCheck,
+  Award,
+  Compass,
+  FileText,
+  Inbox,
+  Library,
 };
 
 export function getSidebarIcon(name: string): LucideIcon {

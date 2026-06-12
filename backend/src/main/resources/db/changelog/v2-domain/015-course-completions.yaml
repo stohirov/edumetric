@@ -1,0 +1,45 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-015-create-course-completions
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: course_completions
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: student_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_course_completions_student
+                    references: students(id)
+              - column:
+                  name: course_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_course_completions_course
+                    references: courses(id)
+              - column:
+                  name: certificate_code
+                  type: VARCHAR(40)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_course_completions_code
+              - column:
+                  name: completed_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: course_completions
+            columnNames: student_id, course_id
+            constraintName: uk_course_completions_student_course
