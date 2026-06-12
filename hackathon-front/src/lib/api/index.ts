@@ -19,3 +19,4 @@ export * as contentApi from "./content";
 export * as quizzesApi from "./quizzes";
 export * as profileApi from "./profile";
 export * as settingsApi from "./settings";
+export * as notificationsApi from "./notifications";

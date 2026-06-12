@@ -1,0 +1,122 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-008-create-notifications
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: notifications
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_notifications_user
+                    references: users(id)
+              - column:
+                  name: type
+                  type: VARCHAR(48)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: body
+                  type: VARCHAR(1000)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: link
+                  type: VARCHAR(512)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: read_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: notifications
+            indexName: idx_notifications_user
+            columns:
+              - column:
+                  name: user_id
+        - createIndex:
+            tableName: notifications
+            indexName: idx_notifications_user_unread
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: read_at
+  - changeSet:
+      id: v2-008-create-announcements
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: announcements
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: author_user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_announcements_author
+                    references: users(id)
+              - column:
+                  name: scope
+                  type: VARCHAR(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: group_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_announcements_group
+                    references: groups(id)
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: body
+                  type: VARCHAR(4000)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: ALTER TABLE announcements ADD CONSTRAINT ck_announcements_scope CHECK (scope IN ('ALL','GROUP'))
+        - createIndex:
+            tableName: announcements
+            indexName: idx_announcements_created
+            columns:
+              - column:
+                  name: created_at

@@ -27,6 +27,10 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
 
     Page<Student> findAllByGroupId(Long groupId, Pageable pageable);
 
+    /** User ids of the students in a group — used to fan out group announcements. */
+    @Query("SELECT s.user.id FROM Student s WHERE s.group.id = :groupId")
+    List<Long> findUserIdsByGroupId(@Param("groupId") Long groupId);
+
     long countByGroupId(Long groupId);
 
     @Query(value = """

@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   BarChart3,
+  Bell,
   BookOpen,
   CalendarCheck,
   CalendarClock,
@@ -11,6 +12,7 @@ import {
   Layers,
   LayoutDashboard,
   ListChecks,
+  Megaphone,
   Settings,
   TrendingUp,
   UserCog,
@@ -35,6 +37,8 @@ export const sidebarIconMap: Record<string, LucideIcon> = {
   BookOpen,
   CalendarClock,
   ListChecks,
+  Bell,
+  Megaphone,
 };
 
 export function getSidebarIcon(name: string): LucideIcon {

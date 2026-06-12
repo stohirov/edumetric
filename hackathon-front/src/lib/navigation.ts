@@ -34,6 +34,7 @@ export function getNavSectionsForRole(role: UserRole, t: Dictionary): NavSection
             { title: t.nav.homework, href: "/student/homework", icon: "ClipboardCheck" },
             { title: t.nav.content, href: "/student/content", icon: "BookOpen" },
             { title: t.nav.quizzes, href: "/student/quizzes", icon: "ListChecks" },
+            { title: t.nav.notifications, href: "/student/notifications", icon: "Bell" },
             { title: t.nav.settings, href: "/student/settings", icon: "Settings" },
           ],
         },
@@ -52,6 +53,8 @@ export function getNavSectionsForRole(role: UserRole, t: Dictionary): NavSection
             { title: t.nav.quizzes, href: "/teacher/quizzes", icon: "ListChecks" },
             { title: t.nav.atRisk, href: "/teacher/at-risk", icon: "AlertTriangle", badge: "3" },
             { title: t.nav.students, href: "/teacher/students", icon: "Users" },
+            { title: t.nav.announcements, href: "/teacher/announcements", icon: "Megaphone" },
+            { title: t.nav.notifications, href: "/teacher/notifications", icon: "Bell" },
             { title: t.nav.settings, href: "/teacher/settings", icon: "Settings" },
           ],
         },
@@ -83,7 +86,11 @@ export function getNavSectionsForRole(role: UserRole, t: Dictionary): NavSection
         },
         {
           label: t.nav.sections.system,
-          items: [{ title: t.nav.settings, href: "/admin/settings", icon: "Settings" }],
+          items: [
+            { title: t.nav.announcements, href: "/admin/announcements", icon: "Megaphone" },
+            { title: t.nav.notifications, href: "/admin/notifications", icon: "Bell" },
+            { title: t.nav.settings, href: "/admin/settings", icon: "Settings" },
+          ],
         },
       ];
     default:

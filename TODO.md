@@ -226,15 +226,32 @@ Currently courses are just metadata (code/name/description). A real LMS needs **
 
 ## 7. Communication & Notifications
 
-Entirely missing — a solid LMS needs this.
+The in-app foundation is in place (Section 7); email/messaging/push/reminders remain.
 
-- [ ] **In-app notification center** (bell + feed).
+- [x] **In-app notification center** (bell + feed) — `notifications/` slice (migration
+  `v2-domain/008-notifications`): per-user `Notification` rows with a reusable
+  `NotificationService.notifyUser/notifyUsers` producer (honours the existing global
+  `notifyInApp` pref) that other slices call. `GradeService` now raises `GRADE_POSTED`
+  notifications on single + bulk grade entry, deep-linking to `/student/grades`.
+  `GET /api/notifications` (top 50), `/unread-count`, `POST /{id}/read`, `/read-all`
+  (all ownership-scoped). Frontend: a polling (30s) `NotificationBell` in the header
+  (unread badge + dropdown feed, mark-read on click, mark-all-read) replacing the old
+  static at-risk bell, plus a full `/notifications` feed page per role.
 - [ ] **Email notifications** (grades posted, homework due, absence, announcements).
-- [ ] **Announcements** — admin → all, teacher → group.
+  _Blocked on email delivery still being unwired app-wide (TODO §1 / §7)._
+- [x] **Announcements** — admin → all, teacher → group. `Announcement` entity +
+  `AnnouncementService`/`AnnouncementController` (`POST/GET /api/announcements`).
+  Admins target `ALL` (institution-wide) or any group; teachers may only target a group
+  they teach (validated via `LessonRepository.findGroupIdsForTeacherUser`, else 403).
+  Posting fans out `ANNOUNCEMENT` notifications to recipients (all users, or the group's
+  students). Audit: `Announcement CREATED`. Teacher/admin composer pages at
+  `/{teacher,admin}/announcements`; students see announcements inline in their feed.
 - [ ] **Messaging** — teacher ↔ student/parent direct or group messaging.
 - [ ] **Push / browser notifications** (optional).
-- [ ] **Notification preferences** per user.
-- [ ] **Reminders** — upcoming due dates, lessons.
+- [~] **Notification preferences** per user — the global `notifyInApp`/`notifyEmail`
+  toggles (settings) are honoured (in-app notifications are suppressed when a user opts
+  out); per-event / per-channel granular prefs are not modelled yet.
+- [ ] **Reminders** — upcoming due dates, lessons. _Needs a scheduler (see §11 background jobs)._
 
 ---
 

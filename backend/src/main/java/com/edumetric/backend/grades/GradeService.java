@@ -9,6 +9,8 @@ import com.edumetric.backend.grades.dto.CreateGradeRequest;
 import com.edumetric.backend.grades.dto.GradeDto;
 import com.edumetric.backend.grades.dto.UpdateGradeRequest;
 import com.edumetric.backend.metrics.MetricsService;
+import com.edumetric.backend.notifications.NotificationService;
+import com.edumetric.backend.notifications.domain.NotificationType;
 import com.edumetric.backend.security.AuthenticatedUser;
 import com.edumetric.backend.security.TeacherScope;
 import com.edumetric.backend.students.StudentRepository;
@@ -33,6 +35,7 @@ public class GradeService {
     private final UserRepository userRepository;
     private final TeacherScope teacherScope;
     private final MetricsService metricsService;
+    private final NotificationService notificationService;
 
     @Transactional
     public GradeDto create(CreateGradeRequest request, AuthenticatedUser actor) {
@@ -57,6 +60,12 @@ public class GradeService {
         grade.setGradedAt(Instant.now());
         Grade saved = gradeRepository.save(grade);
         metricsService.recompute(student.getId());
+        notificationService.notifyUser(
+                student.getUser().getId(),
+                NotificationType.GRADE_POSTED,
+                "New grade posted",
+                assignment.getName() + ": " + request.value(),
+                "/student/grades");
         return GradeDto.from(saved);
     }
 
@@ -68,6 +77,7 @@ public class GradeService {
                 .orElseThrow(() -> ResourceNotFoundException.of("User", actor.id()));
 
         Set<Long> affectedStudentIds = new HashSet<>();
+        Set<Long> notifyUserIds = new HashSet<>();
         Instant now = Instant.now();
         for (BulkGradeRequest.Entry entry : request.entries()) {
             teacherScope.assertCanWriteFor(actor, entry.studentId());
@@ -86,8 +96,15 @@ public class GradeService {
             grade.setGradedAt(now);
             gradeRepository.save(grade);
             affectedStudentIds.add(student.getId());
+            notifyUserIds.add(student.getUser().getId());
         }
         metricsService.recomputeAll(affectedStudentIds);
+        notificationService.notifyUsers(
+                notifyUserIds,
+                NotificationType.GRADE_POSTED,
+                "New grade posted",
+                "Grades posted for " + assignment.getName(),
+                "/student/grades");
         return affectedStudentIds;
     }
 

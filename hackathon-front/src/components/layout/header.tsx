@@ -1,12 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { Bell, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
-import { useAuth } from "@/components/providers/auth-provider";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useT } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
@@ -19,14 +17,6 @@ interface HeaderProps {
 
 export function Header({ title, description, action, className }: HeaderProps) {
   const t = useT();
-  const { user } = useAuth();
-
-  const alertsHref =
-    user?.role === "ADMIN"
-      ? "/admin/at-risk"
-      : user?.role === "TEACHER"
-        ? "/teacher/at-risk"
-        : null;
 
   return (
     <header
@@ -52,20 +42,7 @@ export function Header({ title, description, action, className }: HeaderProps) {
           </div>
           <LanguageSwitcher className="hidden sm:inline-flex" />
           <ThemeToggle />
-          {alertsHref ? (
-            <Button
-              asChild
-              variant="ghost"
-              size="icon"
-              className="relative h-9 w-9 rounded-lg"
-              aria-label="View alerts"
-            >
-              <Link href={alertsHref}>
-                <Bell className="h-4 w-4 text-theme-muted" />
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-indigo-600 ring-2 ring-[var(--card)]" />
-              </Link>
-            </Button>
-          ) : null}
+          <NotificationBell />
           {action}
         </div>
       </div>

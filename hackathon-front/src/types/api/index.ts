@@ -17,3 +17,4 @@ export * from "./homework";
 export * from "./content";
 export * from "./quizzes";
 export * from "./settings";
+export * from "./notifications";
