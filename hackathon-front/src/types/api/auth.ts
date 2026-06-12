@@ -1,6 +1,8 @@
 // Mirrors com.edumetric.backend.auth and users.domain.Role
 
-export type Role = "ADMIN" | "TEACHER" | "STUDENT";
+export type Role = "ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
+
+export type AccountStatus = "ACTIVE" | "SUSPENDED";
 
 export interface UserDto {
   id: number;
@@ -21,6 +23,10 @@ export interface UserDto {
   address: string | null;
   // Relative API path (under the /api base) to fetch the avatar image, or null when unset.
   avatarUrl: string | null;
+  // Account lifecycle state — SUSPENDED accounts are retained but cannot log in.
+  status: AccountStatus;
+  emergencyContact: string | null;
+  departmentId: number | null;
 }
 
 export interface LoginRequest {
@@ -104,6 +110,9 @@ export interface UpdateUserRequest {
   password?: string;
   fullName?: string;
   role?: Role;
+  emergencyContact?: string;
+  // 0 clears the department assignment.
+  departmentId?: number;
 }
 
 // Mirrors com.edumetric.backend.users.dto.UpdateProfileRequest — self-service,

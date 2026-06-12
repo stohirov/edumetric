@@ -205,7 +205,7 @@ public class AnalyticsService {
                 yield groupIds.isEmpty() ? List.of()
                         : studentMetricsRepository.findAtRiskInGroups(groupIds);
             }
-            case STUDENT -> throw new ForbiddenException("Students cannot view at-risk list");
+            case STUDENT, PARENT -> throw new ForbiddenException("Not authorized to view at-risk list");
         };
         return base.stream().map(this::toAtRiskDto).toList();
     }

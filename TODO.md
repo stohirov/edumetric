@@ -117,14 +117,37 @@ These are started but incomplete — close them before building new things.
 ## 2. User & Enrollment Management
 
 - [~] User/Student/Teacher CRUD exists with soft deletes.
-- [ ] **Bulk import** users via CSV/Excel (students & teachers).
-- [ ] **Self-registration / invite flow** (admin invites by email).
-- [ ] **Parent/Guardian role** — read-only view of a linked student's progress.
-- [ ] **Enrollment lifecycle** — enroll/unenroll/transfer students between groups with history.
-- [ ] **Teacher ↔ group/course assignment UI** (assign multiple teachers/co-teachers).
-- [ ] **User profile completeness** — phone, address, emergency contact, photo.
-- [ ] **Deactivate vs. delete** distinction (suspend account, retain data).
-- [ ] **Org structure** — departments/faculties, academic terms/semesters.
+- [x] **Bulk import** users via CSV — `bulkimport/` slice: `POST /api/admin/import/{students,teachers}`
+  (multipart CSV, dependency-free parser) reuses `StudentService`/`TeacherService.create` per row,
+  returns `BulkImportResultDto` (total/created/failed + per-row errors). Admin page `/admin/imports`.
+- [x] **Self-registration / invite flow** — `invitations/` slice (migration `v1-core/019`): admin
+  creates an `Invitation` (email + role + optional group), SHA-256-hashed single-use token (7-day TTL,
+  raw token returned once / logged for dev). Public `GET /api/invitations/preview/{token}` +
+  `POST /api/invitations/accept` (permitAll) let the invitee set their own password — provisions the
+  User (+ Student/Teacher row), `emailVerified=true`. Admin page `/admin/invitations` (build link +
+  copy) + public `/invite?token=` accept page. Audit: `INVITATION_CREATED/ACCEPTED/REVOKED`.
+- [x] **Parent/Guardian role** — new `Role.PARENT` (+ role CHECK migration `v1-core/018`). `parent_links`
+  table + `parents/` slice: admin links parent↔student (`/api/parent-links`); parent reads only their
+  linked children (`GET /api/parents/me/children`, `/children/{id}/dashboard`, ownership-enforced).
+  Full frontend parent experience at `/parent` (children + read-only child dashboard, settings,
+  notifications), wired through `roleHomePath`/`RouteGuard`/navigation.
+- [x] **Enrollment lifecycle** — `enrollment/` slice (migration `v2-domain/009`): `Enrollment` history
+  rows (ACTIVE/WITHDRAWN/TRANSFERRED/COMPLETED). `POST /api/enrollments/{enroll,transfer,withdraw}`
+  keep `students.group_id` in sync and append history; `GET /api/enrollments/student/{id}`. Admin page
+  `/admin/enrollment` (enroll/transfer/withdraw + history timeline).
+- [x] **Teacher ↔ course assignment** — `teaching/` slice (migration `v2-domain/010`): `course_teachers`
+  (LEAD / CO_TEACHER) via `/api/course-teachers`. Admin page `/admin/teaching` (assign/unassign multiple
+  teachers per course).
+- [x] **User profile completeness** — phone/address/avatar (§1) plus `emergency_contact` and
+  `department_id` on `users` (migration `v1-core/017`), surfaced on `UserDto` and editable via the
+  admin user update.
+- [x] **Deactivate vs. delete** distinction — `AccountStatus` (ACTIVE/SUSPENDED) on `users`
+  (migration `v1-core/017`); `POST /api/users/{id}/suspend|reactivate` retains all data while
+  `AuthenticatedUser#isEnabled` blocks a suspended account from authenticating. Audit:
+  `USER_SUSPEND/REACTIVATE`.
+- [x] **Org structure** — `organization/` slice (migrations `v1-core/015,016`): `Department` and
+  `AcademicTerm` (single `current` term) CRUD via `/api/departments` + `/api/academic-terms`. Admin
+  pages `/admin/departments` and `/admin/terms`.
 
 ---
 

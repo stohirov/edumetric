@@ -73,6 +73,23 @@ export function getNavSectionsForRole(role: UserRole, t: Dictionary): NavSection
           ],
         },
         {
+          label: t.nav.sections.people,
+          items: [
+            { title: t.nav.enrollment, href: "/admin/enrollment", icon: "UserCheck" },
+            { title: t.nav.coTeachers, href: "/admin/teaching", icon: "UserCog" },
+            { title: t.nav.invitations, href: "/admin/invitations", icon: "MailPlus" },
+            { title: t.nav.imports, href: "/admin/imports", icon: "Upload" },
+            { title: t.nav.parents, href: "/admin/parents", icon: "HeartHandshake" },
+          ],
+        },
+        {
+          label: t.nav.sections.org,
+          items: [
+            { title: t.nav.departments, href: "/admin/departments", icon: "Building2" },
+            { title: t.nav.terms, href: "/admin/terms", icon: "CalendarRange" },
+          ],
+        },
+        {
           label: t.nav.sections.insights,
           items: [
             { title: t.nav.analytics, href: "/analytics", icon: "BarChart3" },
@@ -90,6 +107,17 @@ export function getNavSectionsForRole(role: UserRole, t: Dictionary): NavSection
             { title: t.nav.announcements, href: "/admin/announcements", icon: "Megaphone" },
             { title: t.nav.notifications, href: "/admin/notifications", icon: "Bell" },
             { title: t.nav.settings, href: "/admin/settings", icon: "Settings" },
+          ],
+        },
+      ];
+    case "parent":
+      return [
+        {
+          label: t.nav.sections.menu,
+          items: [
+            { title: t.nav.children, href: "/parent", icon: "Users" },
+            { title: t.nav.notifications, href: "/parent/notifications", icon: "Bell" },
+            { title: t.nav.settings, href: "/parent/settings", icon: "Settings" },
           ],
         },
       ];

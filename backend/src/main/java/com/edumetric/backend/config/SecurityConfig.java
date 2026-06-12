@@ -70,6 +70,8 @@ public class SecurityConfig {
                                 "/api/auth/reset-password",
                                 "/api/auth/verify-email",
                                 "/api/auth/resend-verification",
+                                "/api/invitations/preview/**",
+                                "/api/invitations/accept",
                                 "/actuator/health/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",

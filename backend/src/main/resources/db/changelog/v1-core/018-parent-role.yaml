@@ -1,0 +1,49 @@
+databaseChangeLog:
+  - changeSet:
+      id: v1-018-extend-role-check-parent
+      author: stohirov
+      changes:
+        - sql:
+            sql: ALTER TABLE users DROP CONSTRAINT ck_users_role
+        - sql:
+            sql: ALTER TABLE users ADD CONSTRAINT ck_users_role CHECK (role IN ('ADMIN','TEACHER','STUDENT','PARENT'))
+  - changeSet:
+      id: v1-018-create-parent-links
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: parent_links
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: parent_user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_parent_links_parent
+                    references: users(id)
+              - column:
+                  name: student_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_parent_links_student
+                    references: students(id)
+              - column:
+                  name: relationship
+                  type: VARCHAR(32)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: parent_links
+            columnNames: parent_user_id, student_id
+            constraintName: uk_parent_links_parent_student

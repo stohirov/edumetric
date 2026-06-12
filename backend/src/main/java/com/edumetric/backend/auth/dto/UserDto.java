@@ -1,5 +1,6 @@
 package com.edumetric.backend.auth.dto;
 
+import com.edumetric.backend.users.domain.AccountStatus;
 import com.edumetric.backend.users.domain.Role;
 import com.edumetric.backend.users.domain.User;
 
@@ -16,7 +17,10 @@ public record UserDto(
         boolean emailVerified,
         String phone,
         String address,
-        String avatarUrl
+        String avatarUrl,
+        AccountStatus status,
+        String emergencyContact,
+        Long departmentId
 ) {
 
     /** Relative API path the client fetches the avatar image from (under the /api base). */
@@ -36,6 +40,9 @@ public record UserDto(
                 user.isEmailVerified(),
                 user.getPhone(),
                 user.getAddress(),
-                user.getAvatarKey() != null ? AVATAR_PATH : null);
+                user.getAvatarKey() != null ? AVATAR_PATH : null,
+                user.getStatus(),
+                user.getEmergencyContact(),
+                user.getDepartmentId());
     }
 }

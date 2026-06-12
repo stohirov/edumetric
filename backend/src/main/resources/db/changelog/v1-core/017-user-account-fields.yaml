@@ -1,0 +1,39 @@
+databaseChangeLog:
+  - changeSet:
+      id: v1-017-user-account-status
+      author: stohirov
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: status
+                  type: VARCHAR(16)
+                  defaultValue: ACTIVE
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: ALTER TABLE users ADD CONSTRAINT ck_users_status CHECK (status IN ('ACTIVE','SUSPENDED'))
+  - changeSet:
+      id: v1-017-user-emergency-contact
+      author: stohirov
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: emergency_contact
+                  type: VARCHAR(500)
+  - changeSet:
+      id: v1-017-user-department
+      author: stohirov
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: department_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: fk_users_department
+                    references: departments(id)

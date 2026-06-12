@@ -57,6 +57,18 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.ok(userService.update(id, request, actor)));
     }
 
+    @PostMapping("/{id}/suspend")
+    public ResponseEntity<ApiResponse<UserDto>> suspend(
+            @PathVariable Long id, @AuthenticationPrincipal AuthenticatedUser actor) {
+        return ResponseEntity.ok(ApiResponse.ok(userService.setSuspended(id, true, actor)));
+    }
+
+    @PostMapping("/{id}/reactivate")
+    public ResponseEntity<ApiResponse<UserDto>> reactivate(
+            @PathVariable Long id, @AuthenticationPrincipal AuthenticatedUser actor) {
+        return ResponseEntity.ok(ApiResponse.ok(userService.setSuspended(id, false, actor)));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(
             @PathVariable Long id, @AuthenticationPrincipal AuthenticatedUser actor) {

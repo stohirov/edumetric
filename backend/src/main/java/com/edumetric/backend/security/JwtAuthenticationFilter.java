@@ -50,7 +50,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String name = claims.get("name", String.class);
 
                 AuthenticatedUser principal = new AuthenticatedUser(
-                        userId, email, "", com.edumetric.backend.users.domain.Role.valueOf(role), name, null);
+                        userId, email, "", com.edumetric.backend.users.domain.Role.valueOf(role), name, null,
+                        com.edumetric.backend.users.domain.AccountStatus.ACTIVE);
 
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                         principal, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));

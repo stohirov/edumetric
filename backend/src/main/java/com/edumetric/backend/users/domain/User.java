@@ -104,4 +104,18 @@ public class User extends AuditableEntity {
     /** Stored content type of the avatar image, used when streaming it back. */
     @Column(name = "avatar_content_type", length = 100)
     private String avatarContentType;
+
+    /** Account lifecycle state. SUSPENDED accounts are retained but cannot authenticate. */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    @Builder.Default
+    private AccountStatus status = AccountStatus.ACTIVE;
+
+    /** Optional emergency contact (name + phone), owner- or admin-editable. */
+    @Column(name = "emergency_contact", length = 500)
+    private String emergencyContact;
+
+    /** Optional department/faculty this user belongs to (mainly teachers/admins). */
+    @Column(name = "department_id")
+    private Long departmentId;
 }

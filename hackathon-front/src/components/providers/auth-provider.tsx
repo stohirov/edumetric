@@ -37,6 +37,8 @@ export function roleHomePath(role: Role): string {
       return "/teacher";
     case "STUDENT":
       return "/student";
+    case "PARENT":
+      return "/parent";
   }
 }
 

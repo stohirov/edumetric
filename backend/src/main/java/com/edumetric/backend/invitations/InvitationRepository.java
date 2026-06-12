@@ -1,0 +1,13 @@
+package com.edumetric.backend.invitations;
+
+import com.edumetric.backend.invitations.domain.Invitation;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface InvitationRepository extends JpaRepository<Invitation, Long> {
+
+    Optional<Invitation> findByTokenHash(String tokenHash);
+
+    List<Invitation> findAllByOrderByCreatedAtDesc();
+}

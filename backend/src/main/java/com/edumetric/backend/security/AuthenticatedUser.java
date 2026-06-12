@@ -1,5 +1,6 @@
 package com.edumetric.backend.security;
 
+import com.edumetric.backend.users.domain.AccountStatus;
 import com.edumetric.backend.users.domain.Role;
 import com.edumetric.backend.users.domain.User;
 import java.time.Instant;
@@ -10,7 +11,13 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 public record AuthenticatedUser(
-        Long id, String email, String passwordHash, Role role, String fullName, Instant lockedUntil)
+        Long id,
+        String email,
+        String passwordHash,
+        Role role,
+        String fullName,
+        Instant lockedUntil,
+        AccountStatus status)
         implements UserDetails {
 
     public static AuthenticatedUser from(User user) {
@@ -20,7 +27,8 @@ public record AuthenticatedUser(
                 user.getPasswordHash(),
                 user.getRole(),
                 user.getFullName(),
-                user.getLockedUntil());
+                user.getLockedUntil(),
+                user.getStatus());
     }
 
     @Override
@@ -55,6 +63,6 @@ public record AuthenticatedUser(
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return status == null || status == AccountStatus.ACTIVE;
     }
 }

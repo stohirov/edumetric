@@ -102,6 +102,14 @@ public class UserService {
         if (request.role() != null) {
             user.setRole(request.role());
         }
+        if (request.emergencyContact() != null) {
+            String contact = request.emergencyContact().trim();
+            user.setEmergencyContact(contact.isEmpty() ? null : contact);
+        }
+        if (request.departmentId() != null) {
+            // A sentinel of 0 clears the department assignment.
+            user.setDepartmentId(request.departmentId() == 0 ? null : request.departmentId());
+        }
         auditLogService.log("User", user.getId(), "USER_UPDATE",
                 actor == null ? null : actor.id(),
                 Map.of("email", user.getEmail(), "role", user.getRole().name()));
@@ -212,6 +220,23 @@ public class UserService {
         if (contentType == null || !ALLOWED_AVATAR_TYPES.contains(contentType.toLowerCase())) {
             throw new BadRequestException("Avatar must be a JPEG, PNG, WebP, or GIF image");
         }
+    }
+
+    /**
+     * Suspends or reactivates an account. Unlike deletion this is fully reversible and
+     * retains all data — a SUSPENDED user simply cannot authenticate.
+     */
+    @Transactional
+    public UserDto setSuspended(Long id, boolean suspended, AuthenticatedUser actor) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> ResourceNotFoundException.of("User", id));
+        user.setStatus(suspended
+                ? com.edumetric.backend.users.domain.AccountStatus.SUSPENDED
+                : com.edumetric.backend.users.domain.AccountStatus.ACTIVE);
+        auditLogService.log("User", user.getId(), suspended ? "USER_SUSPEND" : "USER_REACTIVATE",
+                actor == null ? null : actor.id(),
+                Map.of("email", user.getEmail()));
+        return UserDto.from(user);
     }
 
     @Transactional

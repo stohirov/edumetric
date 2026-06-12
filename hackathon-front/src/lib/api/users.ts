@@ -25,3 +25,15 @@ export function updateUser(
 ): Promise<UserDto> {
   return api.patch<UserDto>(`/users/${id}`, payload);
 }
+
+export function suspendUser(id: number): Promise<UserDto> {
+  return api.post<UserDto>(`/users/${id}/suspend`);
+}
+
+export function reactivateUser(id: number): Promise<UserDto> {
+  return api.post<UserDto>(`/users/${id}/reactivate`);
+}
+
+export function deleteUser(id: number): Promise<void> {
+  return api.delete<void>(`/users/${id}`);
+}

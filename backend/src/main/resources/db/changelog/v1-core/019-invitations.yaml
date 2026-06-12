@@ -1,0 +1,68 @@
+databaseChangeLog:
+  - changeSet:
+      id: v1-019-create-invitations
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: invitations
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: full_name
+                  type: VARCHAR(255)
+              - column:
+                  name: role
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: group_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: fk_invitations_group
+                    references: groups(id)
+              - column:
+                  name: token_hash
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_invitations_token_hash
+              - column:
+                  name: status
+                  type: VARCHAR(16)
+                  defaultValue: PENDING
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expires_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: accepted_at
+                  type: TIMESTAMP WITH TIME ZONE
+              - column:
+                  name: created_by_user_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: fk_invitations_created_by
+                    references: users(id)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: ALTER TABLE invitations ADD CONSTRAINT ck_invitations_status CHECK (status IN ('PENDING','ACCEPTED','EXPIRED','REVOKED'))
