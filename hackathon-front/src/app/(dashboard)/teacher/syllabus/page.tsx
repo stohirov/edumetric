@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Header } from "@/components/layout/header";
@@ -73,13 +73,18 @@ export default function TeacherSyllabusPage() {
 
   const syllabus = syllabusQuery.data;
 
-  useEffect(() => {
+  // Sync the form to the loaded syllabus once per (course, load) — the React
+  // "store information from previous renders" pattern (setState during render).
+  const [syncedKey, setSyncedKey] = useState<string | null>(null);
+  const loadKey = `${activeCourseId}:${syllabus ? syllabus.id ?? "new" : "none"}`;
+  if (syncedKey !== loadKey) {
+    setSyncedKey(loadKey);
     setObjectives(syllabus?.objectives ?? "");
     setOutline(syllabus?.outline ?? "");
     setPublished(syllabus?.published ?? false);
     setSuccess(false);
     setError(null);
-  }, [syllabus, activeCourseId]);
+  }
 
   const save = async () => {
     if (activeCourseId == null) return;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Header } from "@/components/layout/header";
@@ -43,15 +43,15 @@ export default function AdminAttendancePolicyPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    if (policyQuery.data) {
-      setMinAttendancePercent(String(policyQuery.data.minAttendancePercent));
-      setConsecutiveAbsenceLimit(
-        String(policyQuery.data.consecutiveAbsenceLimit),
-      );
-      setNotifyOnAbsence(policyQuery.data.notifyOnAbsence);
-    }
-  }, [policyQuery.data]);
+  // Render-time sync of the form to the loaded policy (runs once when data arrives) —
+  // the React "store information from previous renders" pattern.
+  const [synced, setSynced] = useState(false);
+  if (policyQuery.data && !synced) {
+    setSynced(true);
+    setMinAttendancePercent(String(policyQuery.data.minAttendancePercent));
+    setConsecutiveAbsenceLimit(String(policyQuery.data.consecutiveAbsenceLimit));
+    setNotifyOnAbsence(policyQuery.data.notifyOnAbsence);
+  }
 
   async function handleSave() {
     setError(null);

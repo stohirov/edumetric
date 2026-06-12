@@ -158,7 +158,7 @@ export default function StudentAppealsPage() {
             <CardHeader>
               <CardTitle>My appeals</CardTitle>
               <CardDescription>
-                The status and outcome of every appeal you've submitted.
+                The status and outcome of every appeal you have submitted.
               </CardDescription>
             </CardHeader>
             <CardContent>

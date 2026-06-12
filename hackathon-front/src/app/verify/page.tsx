@@ -37,9 +37,25 @@ function VerifyInner() {
     }
   }
 
+  // Auto-verify a code arriving via ?code= — state is set only inside the async
+  // callback (after await), never synchronously in the effect body.
   useEffect(() => {
-    if (initial) verify(initial);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!initial) return;
+    let cancelled = false;
+    (async () => {
+      if (!cancelled) setLoading(true);
+      try {
+        const r = await certificatesApi.verifyCertificate(initial.trim());
+        if (!cancelled) setResult(r);
+      } catch (e) {
+        if (!cancelled) setError(errMsg(e));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [initial]);
 
   return (

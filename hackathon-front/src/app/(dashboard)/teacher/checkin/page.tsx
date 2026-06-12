@@ -65,13 +65,11 @@ export default function TeacherCheckinPage() {
   const checkin = statusQuery.data;
   const code = checkin?.open ? checkin.code : null;
 
-  // Render the QR code whenever an open code is present.
+  // Render the QR code whenever an open code is present. State is only set inside the
+  // async callback (never synchronously in the effect body); the QR <img> is gated on `code`.
   useEffect(() => {
+    if (!code) return;
     let cancelled = false;
-    if (!code) {
-      setQrDataUrl("");
-      return;
-    }
     const origin =
       typeof window !== "undefined" ? window.location.origin : "";
     const target = `${origin}/student/checkin?code=${encodeURIComponent(code)}`;
