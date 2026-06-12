@@ -14,7 +14,8 @@ public record AssignmentDto(
         AssignmentType type,
         BigDecimal maxValue,
         BigDecimal weight,
-        LocalDate dueDate) {
+        LocalDate dueDate,
+        Long categoryId) {
 
     public static AssignmentDto from(Assignment assignment) {
         return new AssignmentDto(
@@ -25,6 +26,7 @@ public record AssignmentDto(
                 assignment.getType(),
                 assignment.getMaxValue(),
                 assignment.getWeight(),
-                assignment.getDueDate());
+                assignment.getDueDate(),
+                assignment.getCategoryId());
     }
 }

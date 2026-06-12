@@ -63,6 +63,10 @@ public class Assignment {
     @Column(name = "due_date")
     private LocalDate dueDate;
 
+    /** Optional grade category this assignment belongs to (for category-weighted course grades). */
+    @Column(name = "category_id")
+    private Long categoryId;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

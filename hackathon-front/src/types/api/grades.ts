@@ -47,6 +47,7 @@ export interface AssignmentDto {
   maxValue: number;
   weight: number;
   dueDate: string | null; // LocalDate ISO (yyyy-MM-dd)
+  categoryId: number | null;
 }
 
 export interface CreateAssignmentRequest {
@@ -56,6 +57,7 @@ export interface CreateAssignmentRequest {
   maxValue: number;
   weight?: number;
   dueDate?: string | null;
+  categoryId?: number;
 }
 
 export interface UpdateAssignmentRequest {
@@ -64,4 +66,6 @@ export interface UpdateAssignmentRequest {
   maxValue?: number;
   weight?: number;
   dueDate?: string | null;
+  // 0 clears the category.
+  categoryId?: number;
 }

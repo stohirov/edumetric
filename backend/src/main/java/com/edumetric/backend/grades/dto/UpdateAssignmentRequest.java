@@ -11,6 +11,8 @@ public record UpdateAssignmentRequest(
         AssignmentType type,
         @DecimalMin("0.0") BigDecimal maxValue,
         @DecimalMin("0.0") BigDecimal weight,
-        LocalDate dueDate
+        LocalDate dueDate,
+        // 0 clears the category assignment.
+        Long categoryId
 ) {
 }

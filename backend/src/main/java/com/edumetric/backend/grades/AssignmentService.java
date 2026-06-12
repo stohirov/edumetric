@@ -49,6 +49,7 @@ public class AssignmentService {
                 .maxValue(request.maxValue())
                 .weight(request.weight() != null ? request.weight() : DEFAULT_WEIGHT)
                 .dueDate(request.dueDate())
+                .categoryId(request.categoryId())
                 .build();
         return AssignmentDto.from(assignmentRepository.save(assignment));
     }
@@ -72,6 +73,9 @@ public class AssignmentService {
         }
         if (request.dueDate() != null) {
             assignment.setDueDate(request.dueDate());
+        }
+        if (request.categoryId() != null) {
+            assignment.setCategoryId(request.categoryId() == 0 ? null : request.categoryId());
         }
         return AssignmentDto.from(assignment);
     }

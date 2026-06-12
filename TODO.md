@@ -212,12 +212,17 @@ Currently courses are just metadata (code/name/description). A real LMS needs **
   there's one course grade per student across all assignment types. _Quizzes remain a separate
   auto-graded surface; folding `quiz_attempts` into the same matrix and a true single submission
   table are still open._
-- [ ] **Rubrics** — criteria-based grading.
-- [~] **Grade categories & weighting** per course; configurable grading scales (letter/percent/GPA).
-  Per-assignment `weight` already drives the unified weighted course percentage, and the institution
-  `GradingScale` (`PERCENT`/`LETTER`/`GPA_4`, from settings) is now applied to every computed course
-  total via `GradeScale` (percent → letter/GPA display). Per-course named grade *categories* (e.g.
-  "Homework 40% / Exams 60%") are not modelled yet — weighting is per-assignment.
+- [x] **Rubrics** — `rubrics/` slice (migration `v2-domain/017`): a `Rubric` (per assignment) of
+  ordered `RubricCriterion`s (label + max points). Teachers build/replace a rubric
+  (`PUT /api/rubrics`), score a student per criterion (`POST /api/rubrics/score`, stored in
+  `rubric_scores`) — the summed points are upserted as the assignment `Grade` via `GradeService`, so
+  the gradebook reflects rubric grading. Teacher page `/teacher/rubrics` (builder + per-student scorer).
+- [x] **Grade categories & weighting** — `gradecategories/` slice (migration `v2-domain/016`): named
+  weighted `GradeCategory`s per course, and `assignments.category_id` so each assignment belongs to a
+  category. Teacher page `/teacher/grade-categories` (CRUD + weight-sum hint). The institution
+  `GradingScale` (`PERCENT`/`LETTER`/`GPA_4`) still renders every computed total via `GradeScale`.
+  _(The live gradebook total remains per-assignment-weighted; a category-weighted rollup is the
+  remaining refinement.)_
 - [x] **Gradebook view** — full matrix (students × assignments) for teachers with export.
   `gradebook/` slice: `GET /api/gradebook?courseId=&groupId=` returns assignment columns × student
   rows with per-cell grade/submission state, per-column stats (graded/missing/avg), and a weighted
@@ -226,11 +231,27 @@ Currently courses are just metadata (code/name/description). A real LMS needs **
   filter) with client-side CSV export. `GET /api/gradebook/me` powers a unified student course-grade
   view at `/student/grades` (course grade + per-assignment standing, no peer data exposed). Scoped via
   `TeacherScope.assertTeachesCourse`; read-only over existing tables (no migration).
-- [ ] **Feedback & annotations** on submissions (inline comments, returned files).
-- [ ] **Plagiarism/similarity check** hook (optional).
-- [ ] **Peer review** assignments (optional).
-- [ ] **Grade appeals / regrade requests** workflow.
-- [ ] **Final grade computation & transcripts** per term.
+- [x] **Feedback & annotations** on submissions — `feedback/` slice (migration `v2-domain/018`):
+  teachers post written feedback per (assignment, student) via `POST /api/feedback`; students read
+  their own (`GET /api/feedback/me?assignmentId=`). Teacher page `/teacher/feedback`, student page
+  `/student/feedback`.
+- [x] **Plagiarism/similarity check** hook — `plagiarism/` slice (migration `v2-domain/021`):
+  `POST /api/plagiarism/check` runs a dependency-free Jaccard similarity over word 3-shingles of
+  submitted texts and persists flagged pairs (≥30%) in `plagiarism_reports`. Teacher page
+  `/teacher/plagiarism` (paste submissions → similarity matrix).
+- [x] **Peer review** assignments — `peerreview/` slice (migration `v2-domain/022`): teachers assign
+  reviewer→reviewee pairs per assignment (`POST /api/peer-reviews`); reviewers see their queue
+  (`GET /api/peer-reviews/me`) and submit a score + comments (`/{id}/submit`, ownership-enforced).
+  Teacher page `/teacher/peer-reviews`, student page `/student/peer-reviews`.
+- [x] **Grade appeals / regrade requests** workflow — `appeals/` slice (migration `v2-domain/019`):
+  a student opens an appeal on a graded assignment (`POST /api/appeals`); teachers/admins see pending
+  appeals (course-scoped) and resolve (optionally writing a corrected grade via `GradeService`) or
+  reject. Student page `/student/appeals`, teacher page `/teacher/appeals`.
+- [x] **Final grade computation & transcripts** per term — `transcripts/` slice (migration
+  `v2-domain/020`): `POST /api/transcripts/finalize` computes a weighted final percent per student
+  (replicating the gradebook weighting), maps to letter (via `GradeScale`) + a 4.0 GPA, and upserts a
+  `TermGrade` per (student, course, academic term). `GET /api/transcripts/me` is the student transcript;
+  `/student/transcript` and teacher `/teacher/transcripts` (finalize + view).
 
 ---
 

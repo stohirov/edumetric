@@ -30,3 +30,4 @@ export * as libraryApi from "./library";
 export * as syllabusApi from "./syllabus";
 export * as catalogApi from "./catalog";
 export * as certificatesApi from "./certificates";
+export * as gradingApi from "./grading";

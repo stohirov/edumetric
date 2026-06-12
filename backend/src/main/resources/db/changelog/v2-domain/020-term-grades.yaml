@@ -1,0 +1,60 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-020-create-term-grades
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: term_grades
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: student_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_term_grades_student
+                    references: students(id)
+              - column:
+                  name: course_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_term_grades_course
+                    references: courses(id)
+              - column:
+                  name: term_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_term_grades_term
+                    references: academic_terms(id)
+              - column:
+                  name: final_percent
+                  type: NUMERIC(6, 2)
+              - column:
+                  name: letter
+                  type: VARCHAR(8)
+              - column:
+                  name: gpa
+                  type: NUMERIC(4, 2)
+              - column:
+                  name: finalized_by_user_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: fk_term_grades_finalized_by
+                    references: users(id)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: term_grades
+            columnNames: student_id, course_id, term_id
+            constraintName: uk_term_grades_student_course_term

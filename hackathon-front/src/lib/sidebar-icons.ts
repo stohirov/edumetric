@@ -22,12 +22,19 @@ import {
   ListChecks,
   MailPlus,
   Megaphone,
+  MessageSquare,
+  ScanSearch,
+  Scale,
+  ScrollText,
   Settings,
+  SlidersHorizontal,
+  Tags,
   TrendingUp,
   Upload,
   UserCheck,
   UserCog,
   Users,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -61,6 +68,13 @@ export const sidebarIconMap: Record<string, LucideIcon> = {
   FileText,
   Inbox,
   Library,
+  MessageSquare,
+  ScanSearch,
+  Scale,
+  ScrollText,
+  SlidersHorizontal,
+  Tags,
+  UsersRound,
 };
 
 export function getSidebarIcon(name: string): LucideIcon {

@@ -13,6 +13,7 @@ public record CreateAssignmentRequest(
         @NotNull AssignmentType type,
         @NotNull @DecimalMin("0.0") BigDecimal maxValue,
         @DecimalMin("0.0") BigDecimal weight,
-        LocalDate dueDate
+        LocalDate dueDate,
+        Long categoryId
 ) {
 }

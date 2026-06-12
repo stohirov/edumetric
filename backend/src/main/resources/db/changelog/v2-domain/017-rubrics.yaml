@@ -1,0 +1,109 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-017-create-rubrics
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: rubrics
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: assignment_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_rubrics_assignment
+                    foreignKeyName: fk_rubrics_assignment
+                    references: assignments(id)
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: v2-017-create-rubric-criteria
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: rubric_criteria
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: rubric_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_rubric_criteria_rubric
+                    references: rubrics(id)
+              - column:
+                  name: label
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: max_points
+                  type: NUMERIC(10, 2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: position
+                  type: INTEGER
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: v2-017-create-rubric-scores
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: rubric_scores
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: criterion_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_rubric_scores_criterion
+                    references: rubric_criteria(id)
+              - column:
+                  name: student_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_rubric_scores_student
+                    references: students(id)
+              - column:
+                  name: points
+                  type: NUMERIC(10, 2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: comment
+                  type: TEXT
+        - addUniqueConstraint:
+            tableName: rubric_scores
+            columnNames: criterion_id, student_id
+            constraintName: uk_rubric_scores_criterion_student

@@ -1,0 +1,59 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-019-create-grade-appeals
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: grade_appeals
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: assignment_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_grade_appeals_assignment
+                    references: assignments(id)
+              - column:
+                  name: student_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_grade_appeals_student
+                    references: students(id)
+              - column:
+                  name: reason
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(16)
+                  defaultValue: PENDING
+                  constraints:
+                    nullable: false
+              - column:
+                  name: resolution
+                  type: TEXT
+              - column:
+                  name: resolved_by_user_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: fk_grade_appeals_resolved_by
+                    references: users(id)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: resolved_at
+                  type: TIMESTAMP WITH TIME ZONE
+        - sql:
+            sql: ALTER TABLE grade_appeals ADD CONSTRAINT ck_grade_appeals_status CHECK (status IN ('PENDING','RESOLVED','REJECTED'))
