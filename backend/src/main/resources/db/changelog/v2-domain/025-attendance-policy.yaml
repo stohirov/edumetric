@@ -1,0 +1,57 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-025-create-attendance-policy
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: attendance_policy
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: min_attendance_percent
+                  type: NUMERIC(5, 2)
+                  defaultValueNumeric: 75
+                  constraints:
+                    nullable: false
+              - column:
+                  name: consecutive_absence_limit
+                  type: INTEGER
+                  defaultValueNumeric: 3
+                  constraints:
+                    nullable: false
+              - column:
+                  name: notify_on_absence
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: v2-025-seed-attendance-policy
+      author: stohirov
+      changes:
+        - insert:
+            tableName: attendance_policy
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 1
+              - column:
+                  name: min_attendance_percent
+                  valueNumeric: 75
+              - column:
+                  name: consecutive_absence_limit
+                  valueNumeric: 3
+              - column:
+                  name: notify_on_absence
+                  valueBoolean: true

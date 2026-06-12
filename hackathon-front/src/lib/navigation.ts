@@ -30,6 +30,8 @@ export function getNavSectionsForRole(role: UserRole, t: Dictionary): NavSection
             { title: t.nav.dashboard, href: "/student", icon: "LayoutDashboard" },
             { title: t.nav.myGrowth, href: "/student/growth", icon: "TrendingUp" },
             { title: t.nav.attendance, href: "/student/attendance", icon: "CalendarCheck" },
+            { title: t.nav.checkin, href: "/student/checkin", icon: "QrCode" },
+            { title: t.nav.justifications, href: "/student/justifications", icon: "FileCheck2" },
             { title: t.nav.grades, href: "/student/grades", icon: "GraduationCap" },
             { title: t.nav.feedback, href: "/student/feedback", icon: "MessageSquare" },
             { title: t.nav.appeals, href: "/student/appeals", icon: "Scale" },
@@ -55,6 +57,9 @@ export function getNavSectionsForRole(role: UserRole, t: Dictionary): NavSection
             { title: t.nav.today, href: "/teacher", icon: "CalendarDays" },
             { title: t.nav.groups, href: "/teacher/groups", icon: "Layers" },
             { title: t.nav.attendance, href: "/teacher/attendance", icon: "CalendarCheck" },
+            { title: t.nav.checkin, href: "/teacher/checkin", icon: "QrCode" },
+            { title: t.nav.justifications, href: "/teacher/justifications", icon: "FileCheck2" },
+            { title: t.nav.attendanceReports, href: "/teacher/attendance-reports", icon: "Activity" },
             { title: t.nav.grades, href: "/teacher/grades", icon: "ClipboardList" },
             { title: t.nav.gradeCategories, href: "/teacher/grade-categories", icon: "Tags" },
             { title: t.nav.rubrics, href: "/teacher/rubrics", icon: "SlidersHorizontal" },
@@ -105,6 +110,7 @@ export function getNavSectionsForRole(role: UserRole, t: Dictionary): NavSection
           items: [
             { title: t.nav.departments, href: "/admin/departments", icon: "Building2" },
             { title: t.nav.terms, href: "/admin/terms", icon: "CalendarRange" },
+            { title: t.nav.attendancePolicy, href: "/admin/attendance-policy", icon: "ShieldCheck" },
           ],
         },
         {

@@ -68,6 +68,10 @@ export const uz = {
     transcript: "Mening baho varaqam",
     peerReviews: "O'zaro baholash",
     plagiarism: "Plagiat tekshiruvi",
+    checkin: "Belgilanish",
+    justifications: "Sababli kelmaslik",
+    attendanceReports: "Davomat hisobotlari",
+    attendancePolicy: "Davomat siyosati",
     roles: { admin: "Administrator", teacher: "O'qituvchi", student: "O'quvchi", parent: "Ota-ona" },
   },
   notifications: {

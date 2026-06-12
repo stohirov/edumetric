@@ -1,4 +1,5 @@
 import {
+  Activity,
   AlertTriangle,
   Award,
   BarChart3,
@@ -23,10 +24,13 @@ import {
   MailPlus,
   Megaphone,
   MessageSquare,
+  QrCode,
+  FileCheck2,
   ScanSearch,
   Scale,
   ScrollText,
   Settings,
+  ShieldCheck,
   SlidersHorizontal,
   Tags,
   TrendingUp,
@@ -75,6 +79,10 @@ export const sidebarIconMap: Record<string, LucideIcon> = {
   SlidersHorizontal,
   Tags,
   UsersRound,
+  Activity,
+  FileCheck2,
+  QrCode,
+  ShieldCheck,
 };
 
 export function getSidebarIcon(name: string): LucideIcon {

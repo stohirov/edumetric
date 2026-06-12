@@ -1,0 +1,48 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-023-create-lesson-checkins
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: lesson_checkins
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: lesson_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_lesson_checkins_lesson
+                    foreignKeyName: fk_lesson_checkins_lesson
+                    references: lessons(id)
+              - column:
+                  name: code
+                  type: VARCHAR(16)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_lesson_checkins_code
+              - column:
+                  name: open
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: opened_at
+                  type: TIMESTAMP WITH TIME ZONE
+              - column:
+                  name: expires_at
+                  type: TIMESTAMP WITH TIME ZONE
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false

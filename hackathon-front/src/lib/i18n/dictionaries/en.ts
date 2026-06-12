@@ -70,6 +70,10 @@ export const en: Dictionary = {
     transcript: "My transcript",
     peerReviews: "Peer reviews",
     plagiarism: "Plagiarism check",
+    checkin: "Check-in",
+    justifications: "Absence excuses",
+    attendanceReports: "Attendance reports",
+    attendancePolicy: "Attendance policy",
     roles: { admin: "Administrator", teacher: "Teacher", student: "Student", parent: "Parent" },
   },
   notifications: {

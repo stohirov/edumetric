@@ -70,6 +70,10 @@ export const ru: Dictionary = {
     transcript: "Моя ведомость",
     peerReviews: "Взаимные проверки",
     plagiarism: "Проверка на плагиат",
+    checkin: "Отметка присутствия",
+    justifications: "Оправдания пропусков",
+    attendanceReports: "Отчёты посещаемости",
+    attendancePolicy: "Политика посещаемости",
     roles: { admin: "Администратор", teacher: "Преподаватель", student: "Студент", parent: "Родитель" },
   },
   notifications: {

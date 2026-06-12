@@ -1,0 +1,60 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-024-create-absence-justifications
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: absence_justifications
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: student_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_absence_justifications_student
+                    references: students(id)
+              - column:
+                  name: lesson_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_absence_justifications_lesson
+                    references: lessons(id)
+              - column:
+                  name: reason
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(16)
+                  defaultValue: PENDING
+                  constraints:
+                    nullable: false
+              - column:
+                  name: decided_by_user_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: fk_absence_justifications_decided_by
+                    references: users(id)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: decided_at
+                  type: TIMESTAMP WITH TIME ZONE
+        - addUniqueConstraint:
+            tableName: absence_justifications
+            columnNames: student_id, lesson_id
+            constraintName: uk_absence_justifications_student_lesson
+        - sql:
+            sql: ALTER TABLE absence_justifications ADD CONSTRAINT ck_absence_justifications_status CHECK (status IN ('PENDING','APPROVED','REJECTED'))

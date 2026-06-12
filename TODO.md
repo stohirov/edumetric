@@ -258,12 +258,28 @@ Currently courses are just metadata (code/name/description). A real LMS needs **
 ## 5. Attendance
 
 - [~] Mark present/late/absent/excused per lesson exists.
-- [ ] **Bulk/quick mark** whole group + default-present.
-- [ ] **Attendance reports** per student/group/term with % and trends.
-- [ ] **Self check-in** (QR/code) option.
-- [ ] **Absence justification workflow** (student submits excuse → teacher/admin approves).
-- [ ] **Configurable attendance policy** & automatic at-risk flag on threshold.
-- [ ] **Notifications** to student/parent on absence.
+- [x] **Bulk/quick mark** whole group + default-present — `POST /api/attendance/lesson/{id}/mark-all`
+  (status defaults to `PRESENT`, `onlyUnmarked` defaults to true) one-click marks the whole lesson
+  roster, leaving already-marked students untouched. `attendanceApi.markAll` on the client.
+- [x] **Attendance reports** per student/group — `AttendanceReportService` (new files in the attendance
+  slice): `GET /api/attendance/report/{student/{id},me,group/{id}}` return per-status counts, an
+  attendance % (present+late+excused / total) and an at-risk flag vs the policy threshold; group report
+  rolls up a group average. Teacher page `/teacher/attendance-reports`.
+- [x] **Self check-in (QR/code)** — `checkin/` slice (migration `v2-domain/023`): a teacher opens a
+  check-in for a lesson (`/api/attendance/checkin/open/{lessonId}` mints a 6-char code), students submit
+  the code (`/api/attendance/checkin/submit`) to self-mark `PRESENT` (group-scoped, expiry-checked).
+  Teacher page `/teacher/checkin` renders the code + a scannable QR; student page `/student/checkin`.
+- [x] **Absence justification workflow** — `justifications/` slice (migration `v2-domain/024`): a student
+  submits an excuse for a lesson (`POST /api/justifications`); teachers/admins review pending excuses
+  (course-scoped) and approve — which upserts that lesson's attendance to `EXCUSED` — or reject. Student
+  page `/student/justifications`, teacher page `/teacher/justifications`.
+- [x] **Configurable attendance policy** & at-risk flag — `attendance_policy` singleton (migration
+  `v2-domain/025`): `minAttendancePercent`, `consecutiveAbsenceLimit`, `notifyOnAbsence`.
+  `GET/PATCH /api/attendance/policy` (admin page `/admin/attendance-policy`); the min threshold drives
+  the at-risk flag in attendance reports.
+- [x] **Notifications to student/parent on absence** — marking a student `ABSENT` (bulk or mark-all)
+  raises an `ABSENCE_MARKED` in-app notification to the student and their linked parents (via
+  `parent_links`), gated by the policy's `notifyOnAbsence` flag.
 
 ---
 
