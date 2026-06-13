@@ -46,6 +46,17 @@ def img_md(fig_id: str, asset_name: str = None) -> str:
 def main():
     text = MD.read_text(encoding="utf-8")
 
+    # ---- 0. Drop the markdown title-page block ----------------------------
+    # The centred title block, student-info table and "submitted" block do not
+    # survive markdown->docx faithfully (soft breaks collapse, no centring, no
+    # per-line sizes). They are rebuilt programmatically in style_docx.py to
+    # match the BTEC template title page. Strip everything from the first
+    # centred div up to the Declaration of Originality heading.
+    text, n = re.subn(
+        r'<div align="center">.*?(?=## Declaration of Originality)',
+        "", text, count=1, flags=re.DOTALL)
+    assert n == 1, f"title-page block not found to strip (matched {n})"
+
     # ---- 1. Replace inline ```mermaid fences with images -------------------
     fence_re = re.compile(r"```mermaid\n.*?\n```", re.DOTALL)
     fig_re = re.compile(r"Figure (\d+)\.(\d+)")

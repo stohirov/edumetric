@@ -4,46 +4,6 @@ List of Figures / List of Tables mirror ASSET_REGISTRY.md (retitled per REFRAME_
 Page breaks (one per section) are applied at .docx assembly.
 -->
 
-<div align="center">
-
-**PDP UNIVERSITY**
-Faculty of Business Information Technology
-Tashkent, Uzbekistan
-
-**INDEPENDENT PROJECT**
-Pearson BTEC Level 6 Diploma in Digital Technologies
-Unit 2 — Unit Code: 70726U — Credit Value: 30
-
----
-
-# EduMetric
-### A Web-Based Multi-Dimensional Student Performance Analytics System
-*Design, Development and Evaluation of a Transparent Composite-Score Platform for Educational Institutions*
-
----
-
-</div>
-
-| | |
-|---|---|
-| **Student Name:** | ⟨STUDENT INPUT: Full Name⟩ |
-| **Student ID:** | ⟨STUDENT INPUT: ID Number⟩ |
-| **Programme / Group:** | ⟨STUDENT INPUT: BIT — Group Name⟩ |
-| **Project Format:** | Thesis-style ☐    Capstone-style ☒ |
-| **Supervisor:** | ⟨STUDENT INPUT: Supervisor Full Name⟩ |
-| **Submission Date:** | ⟨STUDENT INPUT: Day Month Year⟩ |
-| **Word Count:** | ⟨STUDENT INPUT: XXXX words⟩ |
-
-<div align="center">
-
-Submitted in partial fulfilment of the requirements for the
-Bachelor's Degree in Business Information Technology
-Academic Year ⟨STUDENT INPUT: 20XX–20XX⟩
-
-</div>
-
-<!-- PAGE BREAK -->
-
 ## Declaration of Originality
 
 I hereby declare that this Independent Project, submitted in partial fulfilment of the requirements
