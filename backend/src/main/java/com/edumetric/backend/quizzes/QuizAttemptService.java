@@ -19,6 +19,7 @@ import com.edumetric.backend.quizzes.dto.TakeQuizDto;
 import com.edumetric.backend.security.AuthenticatedUser;
 import com.edumetric.backend.students.StudentRepository;
 import com.edumetric.backend.students.domain.Student;
+import com.edumetric.backend.submissions.SubmissionService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -48,6 +49,7 @@ public class QuizAttemptService {
     private final QuizAttemptRepository attemptRepository;
     private final QuizAttemptAnswerRepository answerRepository;
     private final StudentRepository studentRepository;
+    private final SubmissionService submissionService;
 
     @Transactional(readOnly = true)
     public List<StudentQuizDto> listForStudent(AuthenticatedUser actor) {
@@ -149,6 +151,8 @@ public class QuizAttemptService {
         attempt.setScore(score);
         attempt.setMaxScore(maxScore);
         attempt.setPassed(passed);
+        // Mirror the best attempt into the unified submission table.
+        submissionService.recordQuizAttempt(student, quiz, attempt);
 
         return new AttemptResultDto(attempt.getId(), quiz.getId(), score, maxScore, passed, now, results);
     }

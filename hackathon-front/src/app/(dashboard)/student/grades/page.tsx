@@ -95,14 +95,14 @@ export default function StudentGradesPage() {
                         const pct =
                           it.percent != null ? Math.round(it.percent) : null;
                         return (
-                          <li key={it.assignmentId} className="py-3">
+                          <li key={it.key} className="py-3">
                             <div className="flex items-center justify-between gap-3">
                               <div className="min-w-0">
                                 <p className="truncate font-medium text-theme">
                                   {it.name}
                                 </p>
                                 <p className="text-xs text-theme-muted">
-                                  {tt.weight} ×{it.weight}
+                                  {tt.weight} ×{it.weight ?? 1}
                                   {it.dueDate
                                     ? ` · ${tt.due} ${new Date(it.dueDate).toLocaleDateString()}`
                                     : ""}

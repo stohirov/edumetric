@@ -1,6 +1,7 @@
 import { api } from "./client";
 import type {
   FormulaConfigDto,
+  FormulaPreviewDto,
   StudentMetricsDto,
   TrendPointDto,
   UpdateFormulaRequest,
@@ -36,4 +37,10 @@ export function updateFormula(
   payload: UpdateFormulaRequest,
 ): Promise<FormulaConfigDto> {
   return api.put<FormulaConfigDto>("/metrics/formula", payload);
+}
+
+export function previewFormula(
+  payload: UpdateFormulaRequest,
+): Promise<FormulaPreviewDto> {
+  return api.post<FormulaPreviewDto>("/metrics/formula/preview", payload);
 }

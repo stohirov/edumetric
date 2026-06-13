@@ -7,6 +7,7 @@ import com.edumetric.backend.appeals.dto.CreateAppealRequest;
 import com.edumetric.backend.appeals.dto.GradeAppealDto;
 import com.edumetric.backend.appeals.dto.RejectAppealRequest;
 import com.edumetric.backend.appeals.dto.ResolveAppealRequest;
+import com.edumetric.backend.common.exception.ConflictException;
 import com.edumetric.backend.common.exception.ResourceNotFoundException;
 import com.edumetric.backend.grades.AssignmentRepository;
 import com.edumetric.backend.grades.GradeService;
@@ -23,6 +24,8 @@ import com.edumetric.backend.users.domain.User;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,26 +64,29 @@ public class GradeAppealService {
     }
 
     @Transactional(readOnly = true)
-    public List<GradeAppealDto> myAppeals(AuthenticatedUser actor) {
+    public Page<GradeAppealDto> myAppeals(AuthenticatedUser actor, Pageable pageable) {
         Student student = studentRepository.findByUserId(actor.id())
                 .orElseThrow(() -> ResourceNotFoundException.of("Student", actor.id()));
-        return gradeAppealRepository.findAllByStudentIdOrderByCreatedAtDesc(student.getId()).stream()
-                .map(GradeAppealDto::from)
-                .toList();
+        return gradeAppealRepository
+                .findAllByStudentIdOrderByCreatedAtDesc(student.getId(), pageable)
+                .map(GradeAppealDto::from);
     }
 
     @Transactional(readOnly = true)
-    public List<GradeAppealDto> pending(AuthenticatedUser actor) {
-        List<GradeAppeal> pending = gradeAppealRepository.findAllByStatusOrderByCreatedAtDesc(AppealStatus.PENDING);
+    public Page<GradeAppealDto> pending(AuthenticatedUser actor, Pageable pageable) {
         if (actor.role() == Role.ADMIN) {
-            return pending.stream().map(GradeAppealDto::from).toList();
+            return gradeAppealRepository
+                    .findAllByStatusOrderByCreatedAtDesc(AppealStatus.PENDING, pageable)
+                    .map(GradeAppealDto::from);
         }
-        // TEACHER: only appeals for courses they teach.
-        return pending.stream()
-                .filter(a -> lessonRepository.teacherUserTeachesCourse(
-                        actor.id(), a.getAssignment().getCourse().getId()))
-                .map(GradeAppealDto::from)
-                .toList();
+        // TEACHER: only appeals for courses they teach — scope pushed into the query.
+        List<Long> courseIds = lessonRepository.findCourseIdsForTeacherUser(actor.id());
+        if (courseIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return gradeAppealRepository
+                .findAllByCourseIdsAndStatus(courseIds, AppealStatus.PENDING, pageable)
+                .map(GradeAppealDto::from);
     }
 
     @Transactional
@@ -88,6 +94,9 @@ public class GradeAppealService {
         GradeAppeal appeal = gradeAppealRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("GradeAppeal", id));
         teacherScope.assertTeachesCourse(actor, appeal.getAssignment().getCourse().getId());
+        if (appeal.getStatus() != AppealStatus.PENDING) {
+            throw new ConflictException("Appeal " + id + " is not pending");
+        }
 
         if (request.newValue() != null) {
             gradeService.create(
@@ -114,6 +123,9 @@ public class GradeAppealService {
         GradeAppeal appeal = gradeAppealRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("GradeAppeal", id));
         teacherScope.assertTeachesCourse(actor, appeal.getAssignment().getCourse().getId());
+        if (appeal.getStatus() != AppealStatus.PENDING) {
+            throw new ConflictException("Appeal " + id + " is not pending");
+        }
 
         User resolver = userRepository.findById(actor.id())
                 .orElseThrow(() -> ResourceNotFoundException.of("User", actor.id()));

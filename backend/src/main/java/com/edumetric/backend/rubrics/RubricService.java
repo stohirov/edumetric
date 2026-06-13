@@ -120,6 +120,7 @@ public class RubricService {
 
         Student student = studentRepository.findById(request.studentId())
                 .orElseThrow(() -> ResourceNotFoundException.of("Student", request.studentId()));
+        teacherScope.assertCanWriteFor(actor, student.getId());
 
         Rubric rubric = rubricRepository.findByAssignmentId(request.assignmentId())
                 .orElseThrow(() -> new ResourceNotFoundException(

@@ -12,12 +12,14 @@ import { ErrorState, LoadingState } from "@/components/dashboard/data-states";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useT } from "@/components/providers/locale-provider";
 import { useAsync } from "@/lib/use-async";
 import { lessonsApi } from "@/lib/api";
 import type { LessonDto } from "@/types/api";
 
 export default function AdminLessonsPage() {
   const { user } = useAuth();
+  const tt = useT().pages.adminLessons;
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<LessonDto | null>(null);
   const [deleting, setDeleting] = useState<LessonDto | null>(null);
@@ -43,12 +45,12 @@ export default function AdminLessonsPage() {
         userEmail={user?.email ?? ""}
       >
         <Header
-          title="Lessons"
-          description="Schedule and manage lessons across groups, courses, and teachers."
+          title={tt.title}
+          description={tt.desc}
           action={
             <Button size="sm" onClick={() => setAddOpen(true)}>
               <Plus className="h-4 w-4" />
-              Add lesson
+              {tt.addLesson}
             </Button>
           }
         />

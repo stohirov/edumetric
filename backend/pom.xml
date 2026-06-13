@@ -68,6 +68,14 @@
       <artifactId>datasource-micrometer-spring-boot</artifactId>
     </dependency>
 
+    <!-- Caching for expensive analytics aggregations. Redis-backed in prod
+         (app.cache.redis.enabled=true); falls back to an in-process cache otherwise
+         so dev/test boot without a Redis server. See ARCHITECTURE.md §1. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>

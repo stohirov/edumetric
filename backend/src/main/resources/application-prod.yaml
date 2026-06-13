@@ -8,6 +8,18 @@ spring:
       minimum-idle: 5
   liquibase:
     contexts: default
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2s
+
+app:
+  cache:
+    redis:
+      # Use the Redis-backed cache manager for analytics dashboards in prod.
+      enabled: ${CACHE_REDIS_ENABLED:true}
 
 management:
   endpoints:

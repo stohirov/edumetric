@@ -2,6 +2,7 @@ import { api } from "./client";
 import type {
   AdminDashboardDto,
   AtRiskStudentDto,
+  CohortComparisonDto,
   GroupAnalyticsDto,
   TeacherDashboardDto,
 } from "@/types/api";
@@ -20,4 +21,8 @@ export function getGroupAnalytics(id: number): Promise<GroupAnalyticsDto> {
 
 export function getAtRiskStudents(): Promise<AtRiskStudentDto[]> {
   return api.get<AtRiskStudentDto[]>("/analytics/at-risk");
+}
+
+export function getCohortComparison(): Promise<CohortComparisonDto> {
+  return api.get<CohortComparisonDto>("/analytics/cohorts");
 }

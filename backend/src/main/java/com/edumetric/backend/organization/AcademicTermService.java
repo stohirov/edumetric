@@ -1,11 +1,13 @@
 package com.edumetric.backend.organization;
 
 import com.edumetric.backend.audit.AuditLogService;
+import com.edumetric.backend.common.exception.BadRequestException;
 import com.edumetric.backend.common.exception.ResourceNotFoundException;
 import com.edumetric.backend.organization.domain.AcademicTerm;
 import com.edumetric.backend.organization.dto.AcademicTermDto;
 import com.edumetric.backend.organization.dto.CreateAcademicTermRequest;
 import com.edumetric.backend.organization.dto.UpdateAcademicTermRequest;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,9 @@ public class AcademicTermService {
 
     @Transactional
     public AcademicTermDto create(CreateAcademicTermRequest request, Long actorUserId) {
+        if (!request.endDate().isAfter(request.startDate())) {
+            throw new BadRequestException("endDate must be after startDate.");
+        }
         boolean current = Boolean.TRUE.equals(request.current());
         if (current) {
             clearCurrentTerms();
@@ -56,6 +61,11 @@ public class AcademicTermService {
     public AcademicTermDto update(Long id, UpdateAcademicTermRequest request, Long actorUserId) {
         AcademicTerm term = academicTermRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("AcademicTerm", id));
+        LocalDate effectiveStart = request.startDate() != null ? request.startDate() : term.getStartDate();
+        LocalDate effectiveEnd = request.endDate() != null ? request.endDate() : term.getEndDate();
+        if (!effectiveEnd.isAfter(effectiveStart)) {
+            throw new BadRequestException("endDate must be after startDate.");
+        }
         if (StringUtils.hasText(request.name())) {
             term.setName(request.name());
         }

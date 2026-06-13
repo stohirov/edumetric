@@ -13,6 +13,7 @@ import {
 import { ErrorState, LoadingState } from "@/components/dashboard/data-states";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useT } from "@/components/providers/locale-provider";
 import { useAsync } from "@/lib/use-async";
 import {
   analyticsApi,
@@ -23,6 +24,7 @@ import { adaptTeacherDashboard } from "@/lib/adapters/teacher-dashboard";
 
 export default function TeacherDashboardPage() {
   const { user, status } = useAuth();
+  const t = useT();
 
   const query = useAsync(async () => {
     if (!user) throw new Error("Not authenticated");
@@ -50,7 +52,7 @@ export default function TeacherDashboardPage() {
     <DashboardShell role="teacher" userName={shellName} userEmail={shellEmail}>
       <div className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
         {status === "loading" || query.loading ? (
-          <LoadingState label="Loading your dashboard…" />
+          <LoadingState label={t.pages.dashboardLoading.loading} />
         ) : query.error || !data ? (
           <ErrorState message={query.error?.message} onRetry={query.reload} />
         ) : (

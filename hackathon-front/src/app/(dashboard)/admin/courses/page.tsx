@@ -12,12 +12,14 @@ import { ErrorState, LoadingState } from "@/components/dashboard/data-states";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useT } from "@/components/providers/locale-provider";
 import { useAsync } from "@/lib/use-async";
 import { coursesApi } from "@/lib/api";
 import type { CourseDto } from "@/types/api";
 
 export default function AdminCoursesPage() {
   const { user } = useAuth();
+  const tt = useT().pages.adminCourses;
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<CourseDto | null>(null);
   const [deleting, setDeleting] = useState<CourseDto | null>(null);
@@ -43,12 +45,12 @@ export default function AdminCoursesPage() {
         userEmail={user?.email ?? ""}
       >
         <Header
-          title="Courses"
-          description="Manage courses offered by your institution."
+          title={tt.title}
+          description={tt.desc}
           action={
             <Button size="sm" onClick={() => setAddOpen(true)}>
               <Plus className="h-4 w-4" />
-              Add course
+              {tt.addCourse}
             </Button>
           }
         />

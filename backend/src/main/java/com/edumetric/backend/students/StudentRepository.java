@@ -33,6 +33,13 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
 
     long countByGroupId(Long groupId);
 
+    /**
+     * Student counts for several groups in a single query — returns {@code [groupId, count]}
+     * rows. Replaces a per-group {@link #countByGroupId} call inside dashboard loops.
+     */
+    @Query("SELECT s.group.id, COUNT(s) FROM Student s WHERE s.group.id IN :groupIds GROUP BY s.group.id")
+    List<Object[]> countByGroupIdIn(@Param("groupIds") List<Long> groupIds);
+
     @Query(value = """
             SELECT DISTINCT s FROM Student s
             WHERE s.group.id IN (

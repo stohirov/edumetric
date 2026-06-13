@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -70,30 +72,32 @@ public class AbsenceJustificationService {
 
     /** The submitting student's own justification history, newest first. */
     @Transactional(readOnly = true)
-    public List<JustificationDto> myJustifications(AuthenticatedUser actor) {
+    public Page<JustificationDto> myJustifications(AuthenticatedUser actor, Pageable pageable) {
         Student student = studentRepository.findByUserId(actor.id())
                 .orElseThrow(() -> ResourceNotFoundException.of("Student", actor.id()));
-        return justificationRepository.findAllByStudentIdOrderByCreatedAtDesc(student.getId()).stream()
-                .map(JustificationDto::from)
-                .toList();
+        return justificationRepository
+                .findAllByStudentIdOrderByCreatedAtDesc(student.getId(), pageable)
+                .map(JustificationDto::from);
     }
 
     /**
      * Pending justifications awaiting a decision. Admins see all; teachers see only those whose
-     * lesson belongs to a course they teach.
+     * lesson belongs to a course they teach (scope pushed into the query).
      */
     @Transactional(readOnly = true)
-    public List<JustificationDto> pending(AuthenticatedUser actor) {
-        List<AbsenceJustification> pending =
-                justificationRepository.findAllByStatusOrderByCreatedAtDesc(JustificationStatus.PENDING);
+    public Page<JustificationDto> pending(AuthenticatedUser actor, Pageable pageable) {
         if (actor.role() == Role.ADMIN) {
-            return pending.stream().map(JustificationDto::from).toList();
+            return justificationRepository
+                    .findAllByStatusOrderByCreatedAtDesc(JustificationStatus.PENDING, pageable)
+                    .map(JustificationDto::from);
         }
-        return pending.stream()
-                .filter(j -> lessonRepository.teacherUserTeachesCourse(
-                        actor.id(), j.getLesson().getCourse().getId()))
-                .map(JustificationDto::from)
-                .toList();
+        List<Long> courseIds = lessonRepository.findCourseIdsForTeacherUser(actor.id());
+        if (courseIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return justificationRepository
+                .findAllByCourseIdsAndStatus(courseIds, JustificationStatus.PENDING, pageable)
+                .map(JustificationDto::from);
     }
 
     /**
@@ -105,6 +109,9 @@ public class AbsenceJustificationService {
         AbsenceJustification justification = justificationRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("AbsenceJustification", id));
         teacherScope.assertTeachesCourse(actor, justification.getLesson().getCourse().getId());
+        if (justification.getStatus() != JustificationStatus.PENDING) {
+            throw new ConflictException("Justification is not pending and cannot be approved");
+        }
 
         User decider = userRepository.findById(actor.id())
                 .orElseThrow(() -> ResourceNotFoundException.of("User", actor.id()));
@@ -141,6 +148,9 @@ public class AbsenceJustificationService {
         AbsenceJustification justification = justificationRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("AbsenceJustification", id));
         teacherScope.assertTeachesCourse(actor, justification.getLesson().getCourse().getId());
+        if (justification.getStatus() != JustificationStatus.PENDING) {
+            throw new ConflictException("Justification is not pending and cannot be rejected");
+        }
 
         User decider = userRepository.findById(actor.id())
                 .orElseThrow(() -> ResourceNotFoundException.of("User", actor.id()));

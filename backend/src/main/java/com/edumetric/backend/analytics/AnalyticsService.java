@@ -10,13 +10,17 @@ import com.edumetric.backend.analytics.dto.AdminDashboardDto.TrendPoint;
 import com.edumetric.backend.analytics.dto.AdminDashboardDto.AttendanceWeekPoint;
 import com.edumetric.backend.analytics.dto.AdminDashboardDto.WeeklyActivityPoint;
 import com.edumetric.backend.analytics.dto.AtRiskStudentDto;
+import com.edumetric.backend.analytics.dto.CohortComparisonDto;
 import com.edumetric.backend.analytics.dto.GroupAnalyticsDto;
 import com.edumetric.backend.analytics.dto.TeacherDashboardDto;
+import com.edumetric.backend.atrisk.AtRiskRulesService;
+import com.edumetric.backend.atrisk.domain.AtRiskRules;
 import com.edumetric.backend.attendance.AttendanceRepository;
 import com.edumetric.backend.attendance.domain.Attendance;
 import com.edumetric.backend.attendance.domain.AttendanceStatus;
 import com.edumetric.backend.common.exception.ForbiddenException;
 import com.edumetric.backend.common.exception.ResourceNotFoundException;
+import com.edumetric.backend.config.CacheConfig;
 import com.edumetric.backend.grades.GradeRepository;
 import com.edumetric.backend.grades.domain.Grade;
 import com.edumetric.backend.groups.GroupRepository;
@@ -46,10 +50,12 @@ import java.util.Locale;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,22 +72,35 @@ public class AnalyticsService {
     private final AttendanceRepository attendanceRepository;
     private final GradeRepository gradeRepository;
     private final MetricSnapshotRepository metricSnapshotRepository;
+    private final AtRiskRulesService atRiskRulesService;
 
+    @Cacheable(cacheNames = CacheConfig.ADMIN_DASHBOARD, key = "'all'")
     @Transactional(readOnly = true)
     public AdminDashboardDto adminDashboard() {
         long students = studentRepository.count();
         long groups = groupRepository.count();
         long teachers = teacherRepository.count();
         Double avg = studentMetricsRepository.averageCompositeScore();
-        long atRisk = studentMetricsRepository.countAtRisk();
+
+        List<StudentMetrics> all = studentMetricsRepository.findAllWithStudent();
+        AtRiskRules rules = atRiskRulesService.current();
+        long atRisk = all.stream().filter(m -> atRiskRulesService.isAtRisk(rules, m)).count();
 
         Kpis kpis = new Kpis(students, groups, teachers, avg, atRisk);
 
-        List<StudentMetrics> all = studentMetricsRepository.findAll();
         List<HistogramBucket> histogram = histogram(all);
 
-        List<GroupSummary> topGroups = groupRepository.findAll().stream()
-                .map(this::summarize)
+        // Group the metrics we already loaded in memory and batch the student counts,
+        // instead of issuing two queries per group inside the stream (N+1).
+        List<Group> allGroups = groupRepository.findAll();
+        Map<Long, List<StudentMetrics>> metricsByGroup = groupByGroupId(all);
+        Map<Long, Long> studentCounts =
+                studentCountsByGroup(allGroups.stream().map(Group::getId).toList());
+        List<GroupSummary> topGroups = allGroups.stream()
+                .map(g -> summarize(
+                        g,
+                        metricsByGroup.getOrDefault(g.getId(), List.of()),
+                        studentCounts.getOrDefault(g.getId(), 0L)))
                 .filter(g -> g.studentCount() > 0)
                 .sorted(Comparator.comparing(
                         GroupSummary::averageScore, Comparator.nullsLast(Comparator.reverseOrder())))
@@ -101,9 +120,13 @@ public class AnalyticsService {
     }
 
     @Transactional(readOnly = true)
-    public GroupAnalyticsDto groupAnalytics(Long groupId) {
+    public GroupAnalyticsDto groupAnalytics(Long groupId, AuthenticatedUser actor) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Group", groupId));
+        if (actor.role() != Role.ADMIN
+                && !lessonRepository.teacherUserTeachesCourse(actor.id(), group.getCourse().getId())) {
+            throw new ForbiddenException("Not authorized to view analytics for group " + groupId);
+        }
         List<StudentMetrics> metrics = studentMetricsRepository.findAllByStudentGroupId(groupId);
 
         double[] sums = new double[5];
@@ -140,6 +163,7 @@ public class AnalyticsService {
                 rows);
     }
 
+    @Cacheable(cacheNames = CacheConfig.TEACHER_DASHBOARD, key = "#actor.id()")
     @Transactional(readOnly = true)
     public TeacherDashboardDto teacherDashboard(AuthenticatedUser actor) {
         List<Long> groupIds = lessonRepository.findGroupIdsForTeacherUser(actor.id());
@@ -152,23 +176,27 @@ public class AnalyticsService {
 
         List<StudentMetrics> metrics = studentMetricsRepository.findAllByStudentGroupIdIn(groupIds);
 
-        long studentCount = 0;
-        for (Long gid : groupIds) studentCount += studentRepository.countByGroupId(gid);
+        Map<Long, Long> studentCounts = studentCountsByGroup(groupIds);
+        long studentCount = studentCounts.values().stream().mapToLong(Long::longValue).sum();
 
+        AtRiskRules rules = atRiskRulesService.current();
         double sum = 0;
         int n = 0;
         long atRisk = 0;
         for (StudentMetrics m : metrics) {
+            if (atRiskRulesService.isAtRisk(rules, m)) atRisk++;
             if (m.getCompositeScore() == null) continue;
-            double cs = m.getCompositeScore().doubleValue();
-            sum += cs;
+            sum += m.getCompositeScore().doubleValue();
             n++;
-            if (cs < 50) atRisk++;
         }
         Double avg = n == 0 ? null : sum / n;
 
+        Map<Long, List<StudentMetrics>> metricsByGroup = groupByGroupId(metrics);
         List<TeacherDashboardDto.GroupSummary> groups = groupRepository.findAllById(groupIds).stream()
-                .map(this::summarizeForTeacher)
+                .map(g -> summarizeForTeacher(
+                        g,
+                        metricsByGroup.getOrDefault(g.getId(), List.of()),
+                        studentCounts.getOrDefault(g.getId(), 0L)))
                 .sorted(Comparator.comparing(
                         TeacherDashboardDto.GroupSummary::averageScore,
                         Comparator.nullsLast(Comparator.reverseOrder())))
@@ -180,8 +208,8 @@ public class AnalyticsService {
                 groups);
     }
 
-    private TeacherDashboardDto.GroupSummary summarizeForTeacher(Group group) {
-        List<StudentMetrics> metrics = studentMetricsRepository.findAllByStudentGroupId(group.getId());
+    private TeacherDashboardDto.GroupSummary summarizeForTeacher(
+            Group group, List<StudentMetrics> metrics, long studentCount) {
         double sum = 0;
         int n = 0;
         for (StudentMetrics m : metrics) {
@@ -191,27 +219,100 @@ public class AnalyticsService {
         }
         Double avg = n == 0 ? null : sum / n;
         return new TeacherDashboardDto.GroupSummary(
-                group.getId(), group.getName(),
-                studentRepository.countByGroupId(group.getId()),
-                avg);
+                group.getId(), group.getName(), studentCount, avg);
+    }
+
+    @Cacheable(cacheNames = CacheConfig.COHORT_COMPARISON, key = "'all'")
+    @Transactional(readOnly = true)
+    public CohortComparisonDto cohortComparison() {
+        AtRiskRules rules = atRiskRulesService.current();
+        List<CohortComparisonDto.CohortRow> rows = new ArrayList<>();
+        // One metrics query + one batched count query, grouped in memory — replaces the
+        // two-queries-per-group fan-out the loop used to issue.
+        List<Group> allGroups = groupRepository.findAll();
+        Map<Long, List<StudentMetrics>> metricsByGroup =
+                groupByGroupId(studentMetricsRepository.findAllWithStudent());
+        Map<Long, Long> studentCounts =
+                studentCountsByGroup(allGroups.stream().map(Group::getId).toList());
+        for (Group group : allGroups) {
+            List<StudentMetrics> metrics = metricsByGroup.getOrDefault(group.getId(), List.of());
+            long groupStudentCount = studentCounts.getOrDefault(group.getId(), 0L);
+            if (metrics.isEmpty() && groupStudentCount == 0) {
+                continue;
+            }
+            double[] sums = new double[3]; // composite, attendance, grades
+            int[] counts = new int[3];
+            long atRisk = 0;
+            for (StudentMetrics m : metrics) {
+                if (atRiskRulesService.isAtRisk(rules, m)) atRisk++;
+                Double cs = m.getCompositeScore() == null ? null : m.getCompositeScore().doubleValue();
+                if (cs != null) {
+                    sums[0] += cs;
+                    counts[0]++;
+                }
+                accumulate(sums, counts, 1, m.getAttendanceNorm());
+                accumulate(sums, counts, 2, m.getGradesNorm());
+            }
+            rows.add(new CohortComparisonDto.CohortRow(
+                    group.getId(), group.getName(),
+                    groupStudentCount,
+                    avgOrNull(sums, counts, 0),
+                    avgOrNull(sums, counts, 1),
+                    avgOrNull(sums, counts, 2),
+                    atRisk));
+        }
+        rows.sort(Comparator.comparing(
+                CohortComparisonDto.CohortRow::avgComposite,
+                Comparator.nullsLast(Comparator.reverseOrder())));
+        return new CohortComparisonDto(rows, longitudinal());
+    }
+
+    private List<CohortComparisonDto.LongitudinalPoint> longitudinal() {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        LocalDate from = today.minusMonths(5).withDayOfMonth(1);
+        List<MetricSnapshot> snapshots =
+                metricSnapshotRepository.findAllBySnapshotDateGreaterThanEqualOrderBySnapshotDateAsc(from);
+        Map<Month, double[]> sums = new LinkedHashMap<>();
+        Map<Month, int[]> counts = new LinkedHashMap<>();
+        for (int i = 5; i >= 0; i--) {
+            Month m = today.minusMonths(i).getMonth();
+            sums.put(m, new double[1]);
+            counts.put(m, new int[1]);
+        }
+        for (MetricSnapshot s : snapshots) {
+            double[] sm = sums.get(s.getSnapshotDate().getMonth());
+            int[] cm = counts.get(s.getSnapshotDate().getMonth());
+            if (sm == null) continue;
+            addBucket(sm, cm, 0, s.getCompositeScore());
+        }
+        List<CohortComparisonDto.LongitudinalPoint> out = new ArrayList<>(6);
+        for (Map.Entry<Month, double[]> e : sums.entrySet()) {
+            out.add(new CohortComparisonDto.LongitudinalPoint(
+                    e.getKey().name(), bucketAvg(e.getValue(), counts.get(e.getKey()), 0)));
+        }
+        return out;
     }
 
     @Transactional(readOnly = true)
     public List<AtRiskStudentDto> atRisk(AuthenticatedUser actor) {
         List<StudentMetrics> base = switch (actor.role()) {
-            case ADMIN -> studentMetricsRepository.findAllAtRisk();
+            case ADMIN -> studentMetricsRepository.findAllWithStudent();
             case TEACHER -> {
                 List<Long> groupIds = lessonRepository.findGroupIdsForTeacherUser(actor.id());
                 yield groupIds.isEmpty() ? List.of()
-                        : studentMetricsRepository.findAtRiskInGroups(groupIds);
+                        : studentMetricsRepository.findAllByStudentGroupIdIn(groupIds);
             }
             case STUDENT, PARENT -> throw new ForbiddenException("Not authorized to view at-risk list");
         };
-        return base.stream().map(this::toAtRiskDto).toList();
+        AtRiskRules rules = atRiskRulesService.current();
+        return base.stream()
+                .filter(m -> atRiskRulesService.isAtRisk(rules, m))
+                .map(m -> toAtRiskDto(rules, m))
+                .toList();
     }
 
-    private AtRiskStudentDto toAtRiskDto(StudentMetrics m) {
-        String reason = primaryReason(m);
+    private AtRiskStudentDto toAtRiskDto(AtRiskRules rules, StudentMetrics m) {
+        String reason = atRiskRulesService.primaryReason(rules, m);
         return new AtRiskStudentDto(
                 m.getStudent().getId(),
                 m.getStudent().getUser().getFullName(),
@@ -223,16 +324,7 @@ public class AnalyticsService {
                 reason);
     }
 
-    private String primaryReason(StudentMetrics m) {
-        BigDecimal att = m.getAttendanceNorm();
-        if (att != null && att.doubleValue() < 70) return "Attendance below 70%";
-        if (m.getCompositeScore() != null && m.getCompositeScore().doubleValue() < 40)
-            return "Composite score below 40";
-        return "Composite score below threshold";
-    }
-
-    private GroupSummary summarize(Group group) {
-        List<StudentMetrics> metrics = studentMetricsRepository.findAllByStudentGroupId(group.getId());
+    private GroupSummary summarize(Group group, List<StudentMetrics> metrics, long studentCount) {
         double sum = 0;
         int n = 0;
         for (StudentMetrics m : metrics) {
@@ -241,10 +333,28 @@ public class AnalyticsService {
             n++;
         }
         Double avg = n == 0 ? null : sum / n;
-        return new GroupSummary(
-                group.getId(), group.getName(),
-                studentRepository.countByGroupId(group.getId()),
-                avg);
+        return new GroupSummary(group.getId(), group.getName(), studentCount, avg);
+    }
+
+    /** Groups metrics by their student's group id, skipping students without a group. */
+    private Map<Long, List<StudentMetrics>> groupByGroupId(List<StudentMetrics> metrics) {
+        Map<Long, List<StudentMetrics>> byGroup = new HashMap<>();
+        for (StudentMetrics m : metrics) {
+            Group g = m.getStudent().getGroup();
+            if (g == null) continue;
+            byGroup.computeIfAbsent(g.getId(), k -> new ArrayList<>()).add(m);
+        }
+        return byGroup;
+    }
+
+    /** Student count per group in a single grouped query (empty for an empty input). */
+    private Map<Long, Long> studentCountsByGroup(List<Long> groupIds) {
+        Map<Long, Long> counts = new HashMap<>();
+        if (groupIds.isEmpty()) return counts;
+        for (Object[] row : studentRepository.countByGroupIdIn(groupIds)) {
+            counts.put((Long) row[0], (Long) row[1]);
+        }
+        return counts;
     }
 
     private List<HistogramBucket> histogram(List<StudentMetrics> all) {

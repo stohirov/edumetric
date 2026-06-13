@@ -1,5 +1,6 @@
 package com.edumetric.backend.groups;
 
+import com.edumetric.backend.common.exception.ForbiddenException;
 import com.edumetric.backend.common.exception.ResourceNotFoundException;
 import com.edumetric.backend.courses.CourseRepository;
 import com.edumetric.backend.courses.domain.Course;
@@ -7,8 +8,12 @@ import com.edumetric.backend.groups.domain.Group;
 import com.edumetric.backend.groups.dto.CreateGroupRequest;
 import com.edumetric.backend.groups.dto.GroupDto;
 import com.edumetric.backend.groups.dto.UpdateGroupRequest;
+import com.edumetric.backend.lessons.LessonRepository;
+import com.edumetric.backend.security.AuthenticatedUser;
 import com.edumetric.backend.students.StudentRepository;
 import com.edumetric.backend.students.dto.StudentDto;
+import com.edumetric.backend.users.domain.Role;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,10 +28,18 @@ public class GroupService {
     private final GroupRepository groupRepository;
     private final CourseRepository courseRepository;
     private final StudentRepository studentRepository;
+    private final LessonRepository lessonRepository;
 
     @Transactional(readOnly = true)
-    public Page<GroupDto> list(Pageable pageable) {
-        return groupRepository.findAll(pageable).map(GroupDto::from);
+    public Page<GroupDto> list(AuthenticatedUser actor, Pageable pageable) {
+        if (actor.role() == Role.ADMIN) {
+            return groupRepository.findAll(pageable).map(GroupDto::from);
+        }
+        List<Long> ids = lessonRepository.findGroupIdsForTeacherUser(actor.id());
+        if (ids.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return groupRepository.findAllByIdIn(ids, pageable).map(GroupDto::from);
     }
 
     @Transactional(readOnly = true)
@@ -36,9 +49,13 @@ public class GroupService {
     }
 
     @Transactional(readOnly = true)
-    public Page<StudentDto> listStudents(Long groupId, Pageable pageable) {
+    public Page<StudentDto> listStudents(Long groupId, AuthenticatedUser actor, Pageable pageable) {
         if (!groupRepository.existsById(groupId)) {
             throw ResourceNotFoundException.of("Group", groupId);
+        }
+        if (actor.role() != Role.ADMIN
+                && !lessonRepository.findGroupIdsForTeacherUser(actor.id()).contains(groupId)) {
+            throw new ForbiddenException("Not authorized for group " + groupId);
         }
         return studentRepository.findAllByGroupId(groupId, pageable).map(StudentDto::from);
     }

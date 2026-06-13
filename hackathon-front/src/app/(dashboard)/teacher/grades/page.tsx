@@ -272,7 +272,7 @@ function GradebookTable({
               {tt.student}
             </th>
             {book.columns.map((col) => (
-              <ColumnHeader key={col.assignmentId} col={col} />
+              <ColumnHeader key={col.key} col={col} />
             ))}
             <th className="px-3 py-2 text-right font-medium text-theme">
               {tt.course}
@@ -281,8 +281,8 @@ function GradebookTable({
         </thead>
         <tbody>
           {book.rows.map((row) => {
-            const cellByAssignment = new Map<number, GradebookCellDto>(
-              row.cells.map((c) => [c.assignmentId, c]),
+            const cellByKey = new Map<string, GradebookCellDto>(
+              row.cells.map((c) => [c.key, c]),
             );
             return (
               <tr
@@ -298,12 +298,12 @@ function GradebookTable({
                   )}
                 </td>
                 {book.columns.map((col) => {
-                  const cell = cellByAssignment.get(col.assignmentId);
+                  const cell = cellByKey.get(col.key);
                   return (
                     <GradeCell
                       // Include the saved value so the cell remounts with fresh
                       // local state whenever the matrix reloads after a save.
-                      key={`${col.assignmentId}:${cell?.value ?? ""}`}
+                      key={`${col.key}:${cell?.value ?? ""}`}
                       studentId={row.studentId}
                       column={col}
                       cell={cell}
@@ -330,13 +330,19 @@ function GradebookTable({
 function ColumnHeader({ col }: { col: GradebookColumnDto }) {
   const t = useT();
   const tt = t.pages.teacherGrades;
+  const isQuiz = col.kind === "QUIZ";
   return (
     <th className="min-w-[5.5rem] px-2 py-2 text-center align-bottom font-medium text-theme">
       <div className="truncate" title={col.name}>
         {col.name}
       </div>
+      {isQuiz && (
+        <div className="mx-auto mt-0.5 w-fit rounded bg-indigo-50 px-1 text-[10px] font-medium uppercase tracking-wide text-indigo-600">
+          {tt.quizTag}
+        </div>
+      )}
       <div className="text-[11px] font-normal text-theme-muted">
-        /{col.maxValue} · ×{col.weight}
+        /{col.maxValue ?? "—"} · ×{col.weight ?? 1}
       </div>
       <div className="text-[11px] font-normal text-theme-muted">
         {col.averagePercent != null
@@ -368,8 +374,23 @@ function GradeCell({
   const original = cell?.value != null ? String(cell.value) : "";
   const [value, setValue] = useState(original);
 
+  // Quizzes are auto-graded — show the best-attempt score read-only.
+  if (column.kind === "QUIZ") {
+    return (
+      <td className="px-1 py-1 text-center">
+        <span
+          className={cn("inline-block min-w-16 tabular-nums", gradeTone(cell?.percent ?? null))}
+          title={tt.quizReadOnly}
+        >
+          {cell?.value != null ? cell.value : "—"}
+        </span>
+      </td>
+    );
+  }
+
   const commit = () => {
     if (value.trim() === original.trim()) return;
+    if (column.assignmentId == null || column.maxValue == null) return;
     onSave(studentId, column.assignmentId, value, column.maxValue);
   };
 

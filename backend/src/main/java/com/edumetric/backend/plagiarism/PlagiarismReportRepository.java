@@ -1,12 +1,14 @@
 package com.edumetric.backend.plagiarism;
 
 import com.edumetric.backend.plagiarism.domain.PlagiarismReport;
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PlagiarismReportRepository extends JpaRepository<PlagiarismReport, Long> {
 
-    List<PlagiarismReport> findAllByAssignmentIdOrderBySimilarityDesc(Long assignmentId);
+    Page<PlagiarismReport> findAllByAssignmentIdOrderBySimilarityDesc(
+            Long assignmentId, Pageable pageable);
 
     void deleteAllByAssignmentId(Long assignmentId);
 }

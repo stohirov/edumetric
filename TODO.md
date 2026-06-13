@@ -204,14 +204,25 @@ Currently courses are just metadata (code/name/description). A real LMS needs **
 ## 4. Assignments, Grading & Assessment
 
 - [~] Assignments + grades + bulk grading exist; homework submission exists.
-- [~] **Unified assignment model** — reconcile `assignments`/`grades` with `homework_submissions`.
-  The new `gradebook/` slice unifies the two ways a teacher produces marks: direct `Grade`s and
-  graded homework submissions both hang off the same `Assignment`, and the gradebook surfaces a
-  homework submission that is still awaiting a grade as a "submitted" cell. Writes still funnel
-  through the single `POST /api/grades` upsert (the gradebook owns presentation, not mutation), so
-  there's one course grade per student across all assignment types. _Quizzes remain a separate
-  auto-graded surface; folding `quiz_attempts` into the same matrix and a true single submission
-  table are still open._
+- [x] **Unified assignment model** — reconcile `assignments`/`grades` with `homework_submissions`.
+  The `gradebook/` slice unifies the three ways a course produces a mark: direct `Grade`s and
+  graded homework submissions both hang off the same `Assignment` (and the gradebook surfaces a
+  homework submission still awaiting a grade as a "submitted" cell), and **auto-graded
+  `quiz_attempts` are folded into the same matrix** as read-only `QUIZ` columns scored from each
+  student's best attempt. Columns are polymorphic (`GradebookColumnKind` ASSIGNMENT/QUIZ, stable
+  `key` `a-<id>`/`q-<id>`); quizzes carry a default weight of 1.0 and feed the single weighted course
+  grade alongside assignments, on both the teacher matrix (`/api/gradebook`, read-only quiz cells +
+  "Quiz" tag) and the student view (`/api/gradebook/me`). The **true single submission table** now
+  backs it: a `submissions/` slice (migration `v2-domain/031`, backfilled from the two legacy tables)
+  with one canonical `Submission` row per (student, gradable) — `kind` HOMEWORK/QUIZ, status, best-
+  attempt score/max. `SubmissionService` is the single writer, called transactionally from
+  `HomeworkService.submit` (homework), `QuizAttemptService.submit` (best-attempt quiz mark), and
+  `GradeService` (mirror posted/deleted grades), so the table never drifts. The gradebook now reads
+  every mark from this one table instead of unioning `homework_submissions` + `quiz_attempts` at read
+  time, and a unified inbox is exposed at `GET /api/submissions/me` (student) and
+  `GET /api/submissions?courseId=` (teacher/admin) → pages `/student/submissions` + `/teacher/submissions`.
+  Writes still funnel through `POST /api/grades` (assignments) and the quiz-taking surface (quizzes) —
+  the gradebook owns presentation, not mutation.
 - [x] **Rubrics** — `rubrics/` slice (migration `v2-domain/017`): a `Rubric` (per assignment) of
   ordered `RubricCriterion`s (label + max points). Teachers build/replace a rubric
   (`PUT /api/rubrics`), score a student per criterion (`POST /api/rubrics/score`, stored in
@@ -286,21 +297,48 @@ Currently courses are just metadata (code/name/description). A real LMS needs **
 ## 6. Metrics, Analytics & Reporting
 
 - [~] Composite-score engine (7 dimensions + bonuses), snapshots, at-risk detection, admin/teacher dashboards exist.
-- [ ] **Async/queued recompute** — currently live/synchronous; will not scale. Move to background jobs.
-- [ ] **Scheduled snapshot job** — guarantee daily snapshots (cron) rather than on-demand only.
-- [ ] **Formula audit & preview** — simulate formula changes before activating; show impact.
-- [ ] **Configurable at-risk rules** (multi-factor, not just composite threshold).
-- [ ] **Report export** — PDF/CSV/Excel for dashboards, gradebooks, attendance.
-- [ ] **Scheduled report delivery** (email weekly summary to teachers/parents).
-- [ ] **Cohort comparison** & longitudinal term-over-term analytics.
-- [ ] **Per-student progress report** (printable).
-- [ ] **Data accuracy** — handle small sample sizes / missing data gracefully in scores.
+- [ ] **Async/queued recompute** — _intentionally NOT done._ CLAUDE.md / ARCHITECTURE.md §6 explicitly forbid
+  async/queue-based recompute and message brokers (Redis/Kafka); the live synchronous recompute is a
+  deliberate design choice, not a bug. Left unchecked on purpose.
+- [x] **Scheduled snapshot job** — `SnapshotJob` now runs **daily** at 02:00 UTC (`@Scheduled`, was weekly).
+  Per-student/per-date dedup makes it idempotent (a manual mid-day trigger or restart-and-rerun never
+  double-writes), so the growth/consistency trends stay continuous instead of only capturing days that
+  happened to have an on-demand recompute.
+- [x] **Formula audit & preview** — `POST /api/metrics/formula/preview` (admin) simulates a proposed
+  `ScoreFormula` against every student WITHOUT persisting and returns the blast radius
+  (`FormulaPreviewDto`: comparable students, affected/increased/decreased, average delta, current vs
+  projected institution average, top-10 movers). Admin page `/admin/formula` (weights editor with a
+  live weight-sum guard → preview impact → activate).
+- [x] **Configurable at-risk rules** (multi-factor) — `atrisk/` slice (migration `v2-domain/027`):
+  `at_risk_rules` singleton with per-factor thresholds + enable flags (composite below X, attendance
+  below Y, optionally flag low-confidence scores). `AtRiskRulesService` is the single source of truth —
+  `AnalyticsService` (at-risk list + admin/teacher dashboard counts) now routes every at-risk decision
+  through it instead of the old hardcoded `composite < 50`. `GET/PATCH /api/at-risk-rules`, admin page
+  `/admin/at-risk-rules`.
+- [~] **Report export** — server-side **CSV** done (`reports/` slice): `GET /api/reports/metrics.csv`
+  (admin all / teacher own-groups), `GET /api/reports/student/{id}/grades.csv` (scoped). Client triggers
+  an authenticated blob download. _PDF/Excel still TODO; the printable progress report (below) covers the
+  print-to-PDF path._
+- [ ] **Scheduled report delivery** (email weekly summary) — not yet a scheduled job, but now unblocked:
+  the email channel is wired (§7) and `@Scheduled` jobs are established (`SnapshotJob`, `ReminderJob`).
+- [x] **Cohort comparison** & longitudinal analytics — `GET /api/analytics/cohorts` (admin): per-group
+  averages (composite/attendance/grades) + at-risk counts side by side, plus an institution-wide
+  month-over-month composite series from snapshots. Admin page `/admin/cohorts`.
+- [x] **Per-student progress report** (printable) — `reports/` slice: `GET /api/reports/student/{id}/progress`
+  (ADMIN any / TEACHER scoped / STUDENT self) + `GET /api/reports/me/progress` aggregate metrics +
+  trend + attendance summary + recent grades. Student page `/student/progress` with a Print button;
+  teacher page `/teacher/reports` (CSV downloads + inline progress lookup).
+- [x] **Data accuracy** — small samples handled gracefully: a composite is still produced once there are
+  enough grades, but `MetricsEngine` now flags it **low-confidence** when total signals < 12
+  (`student_metrics.low_confidence`, migration `v2-domain/026`), surfaced on `StudentMetricsDto` and
+  usable as an at-risk factor. (The existing `insufficientData` gate — no score below 5 grades — stays.)
 
 ---
 
 ## 7. Communication & Notifications
 
-The in-app foundation is in place (Section 7); email/messaging/push/reminders remain.
+In-app, email (dev-logged), announcements, direct messaging, granular preferences and reminders are in
+place. Only browser push remains.
 
 - [x] **In-app notification center** (bell + feed) — `notifications/` slice (migration
   `v2-domain/008-notifications`): per-user `Notification` rows with a reusable
@@ -311,8 +349,12 @@ The in-app foundation is in place (Section 7); email/messaging/push/reminders re
   (all ownership-scoped). Frontend: a polling (30s) `NotificationBell` in the header
   (unread badge + dropdown feed, mark-read on click, mark-all-read) replacing the old
   static at-risk bell, plus a full `/notifications` feed page per role.
-- [ ] **Email notifications** (grades posted, homework due, absence, announcements).
-  _Blocked on email delivery still being unwired app-wide (TODO §1 / §7)._
+- [x] **Email notifications** (grades posted, homework due, absence, announcements) — the email channel
+  is now wired end-to-end. `email/` slice: `EmailSender` interface + `LoggingEmailSender` (dev default —
+  logs the message exactly like the password-reset/verification dev delivery; swapping in real SMTP is a
+  one-class `@Primary` replacement). `NotificationService.notifyUser/notifyUsers` now fan out to **both**
+  in-app and email per the recipient's resolved channel prefs, so every existing producer (grades,
+  announcements, absence, messages, reminders) emails automatically when enabled.
 - [x] **Announcements** — admin → all, teacher → group. `Announcement` entity +
   `AnnouncementService`/`AnnouncementController` (`POST/GET /api/announcements`).
   Admins target `ALL` (institution-wide) or any group; teachers may only target a group
@@ -320,12 +362,23 @@ The in-app foundation is in place (Section 7); email/messaging/push/reminders re
   Posting fans out `ANNOUNCEMENT` notifications to recipients (all users, or the group's
   students). Audit: `Announcement CREATED`. Teacher/admin composer pages at
   `/{teacher,admin}/announcements`; students see announcements inline in their feed.
-- [ ] **Messaging** — teacher ↔ student/parent direct or group messaging.
-- [ ] **Push / browser notifications** (optional).
-- [~] **Notification preferences** per user — the global `notifyInApp`/`notifyEmail`
-  toggles (settings) are honoured (in-app notifications are suppressed when a user opts
-  out); per-event / per-channel granular prefs are not modelled yet.
-- [ ] **Reminders** — upcoming due dates, lessons. _Needs a scheduler (see §11 background jobs)._
+- [x] **Messaging** — teacher ↔ student/parent direct messaging. `messaging/` slice (migration
+  `v2-domain/028`): `Conversation` (canonical user-pair) + `Message`. `GET/POST /api/messages/conversations`,
+  `GET/POST /api/messages/conversations/{id}` (participant-scoped in the service), `GET /api/messages/contacts`
+  (role-filtered: teachers/admins ↔ students/parents/teachers; students/parents ↔ teachers/admins). Sending
+  raises a `MESSAGE_RECEIVED` notification to the recipient. Two-pane pages `/teacher/messages` + `/student/messages`.
+- [ ] **Push / browser notifications** (optional) — deferred (needs a service worker + Web Push; the
+  in-app polling bell + email channel cover the near-term need).
+- [x] **Notification preferences** per user — now granular. `notification_preferences` table (migration
+  `v2-domain/029`): one row per (user, event type) carrying `inApp` + `email` channel choices.
+  `NotificationPreferenceService` resolves the effective channel (the global `notifyInApp`/`notifyEmail`
+  switches remain master toggles — a per-event row can only narrow them further, never override an opt-out).
+  `GET/PUT /api/notification-preferences`; `NotificationPreferencesCard` on every role's settings page.
+- [x] **Reminders** — `reminders/` slice (migration `v2-domain/030`): `ReminderJob` runs nightly
+  (`@Scheduled` 07:00 UTC) and reminds students of lessons in the next 24h and assignments due tomorrow,
+  fanning out through `NotificationService` (so reminders inherit each student's channel prefs for the
+  `REMINDER` event). A `reminder_log` idempotency ledger (unique on type+ref+user) prevents double-pinging
+  across overlapping runs.
 
 ---
 

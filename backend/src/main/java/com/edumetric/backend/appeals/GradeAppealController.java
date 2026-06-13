@@ -5,10 +5,11 @@ import com.edumetric.backend.appeals.dto.GradeAppealDto;
 import com.edumetric.backend.appeals.dto.RejectAppealRequest;
 import com.edumetric.backend.appeals.dto.ResolveAppealRequest;
 import com.edumetric.backend.common.api.ApiResponse;
+import com.edumetric.backend.common.api.PageResponse;
 import com.edumetric.backend.security.AuthenticatedUser;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -36,16 +37,18 @@ public class GradeAppealController {
 
     @GetMapping("/me")
     @PreAuthorize("hasRole('STUDENT')")
-    public ResponseEntity<ApiResponse<List<GradeAppealDto>>> myAppeals(
-            @AuthenticationPrincipal AuthenticatedUser principal) {
-        return ResponseEntity.ok(ApiResponse.ok(gradeAppealService.myAppeals(principal)));
+    public ResponseEntity<ApiResponse<PageResponse<GradeAppealDto>>> myAppeals(
+            @AuthenticationPrincipal AuthenticatedUser principal, Pageable pageable) {
+        return ResponseEntity.ok(
+                ApiResponse.ok(PageResponse.of(gradeAppealService.myAppeals(principal, pageable))));
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
-    public ResponseEntity<ApiResponse<List<GradeAppealDto>>> pending(
-            @AuthenticationPrincipal AuthenticatedUser principal) {
-        return ResponseEntity.ok(ApiResponse.ok(gradeAppealService.pending(principal)));
+    public ResponseEntity<ApiResponse<PageResponse<GradeAppealDto>>> pending(
+            @AuthenticationPrincipal AuthenticatedUser principal, Pageable pageable) {
+        return ResponseEntity.ok(
+                ApiResponse.ok(PageResponse.of(gradeAppealService.pending(principal, pageable))));
     }
 
     @PostMapping("/{id}/resolve")

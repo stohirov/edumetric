@@ -13,7 +13,29 @@ export interface StudentMetricsDto {
   formulaVersion: string;
   sampleSize: number;
   insufficientData: boolean;
+  lowConfidence: boolean;
   computedAt: string; // Instant ISO
+}
+
+export interface FormulaPreviewMover {
+  studentId: number;
+  studentName: string;
+  currentScore: number;
+  projectedScore: number;
+  delta: number;
+}
+
+export interface FormulaPreviewDto {
+  comparableStudents: number;
+  affected: number;
+  increased: number;
+  decreased: number;
+  averageDelta: number;
+  maxIncrease: number;
+  maxDecrease: number;
+  currentAverage: number | null;
+  projectedAverage: number | null;
+  topMovers: FormulaPreviewMover[];
 }
 
 export interface TrendPointDto {

@@ -6,11 +6,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ErrorState, LoadingState } from "@/components/dashboard/data-states";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useT } from "@/components/providers/locale-provider";
 import { useAsync } from "@/lib/use-async";
 import { analyticsApi } from "@/lib/api";
 
 export default function AttendancePage() {
   const { user } = useAuth();
+  const tt = useT().pages.attendanceAdmin;
 
   const query = useAsync(
     () => analyticsApi.getAdminDashboard(),
@@ -27,8 +29,8 @@ export default function AttendancePage() {
         userEmail={user?.email ?? ""}
       >
         <Header
-          title="Attendance Management"
-          description="Org-wide attendance signals (full attendance UI is per-lesson via Teacher → Attendance)"
+          title={tt.title}
+          description={tt.desc}
         />
         <div className="space-y-6 p-8">
           {query.loading ? (
@@ -38,10 +40,10 @@ export default function AttendancePage() {
           ) : (
             <div className="grid gap-4 sm:grid-cols-4">
               {[
-                { label: "Students", value: k?.studentCount ?? 0, color: "bg-indigo-500" },
-                { label: "Groups", value: k?.groupCount ?? 0, color: "bg-emerald-500" },
-                { label: "Teachers", value: k?.teacherCount ?? 0, color: "bg-violet-500" },
-                { label: "At-risk", value: k?.atRiskCount ?? 0, color: "bg-amber-500" },
+                { label: tt.students, value: k?.studentCount ?? 0, color: "bg-indigo-500" },
+                { label: tt.groups, value: k?.groupCount ?? 0, color: "bg-emerald-500" },
+                { label: tt.teachers, value: k?.teacherCount ?? 0, color: "bg-violet-500" },
+                { label: tt.atRisk, value: k?.atRiskCount ?? 0, color: "bg-amber-500" },
               ].map((stat) => (
                 <Card key={stat.label}>
                   <CardContent className="flex items-center gap-4 p-4">

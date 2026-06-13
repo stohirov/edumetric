@@ -1,0 +1,43 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-030-create-reminder-log
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: reminder_log
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: reminder_type
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ref_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: v2-030-uk-reminder-log
+      author: stohirov
+      changes:
+        - addUniqueConstraint:
+            constraintName: uk_reminder_log_type_ref_user
+            tableName: reminder_log
+            columnNames: reminder_type, ref_id, user_id

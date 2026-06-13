@@ -10,8 +10,9 @@ import com.edumetric.backend.grades.dto.UpdateAssignmentRequest;
 import com.edumetric.backend.security.AuthenticatedUser;
 import com.edumetric.backend.security.TeacherScope;
 import java.math.BigDecimal;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,11 +31,10 @@ public class AssignmentService {
     private final TeacherScope teacherScope;
 
     @Transactional(readOnly = true)
-    public List<AssignmentDto> listByCourse(Long courseId, AuthenticatedUser actor) {
+    public Page<AssignmentDto> listByCourse(Long courseId, AuthenticatedUser actor, Pageable pageable) {
         teacherScope.assertTeachesCourse(actor, courseId);
-        return assignmentRepository.findAllByCourseIdOrderByDueDateAscNameAsc(courseId).stream()
-                .map(AssignmentDto::from)
-                .toList();
+        return assignmentRepository.findAllByCourseIdOrderByDueDateAscNameAsc(courseId, pageable)
+                .map(AssignmentDto::from);
     }
 
     @Transactional

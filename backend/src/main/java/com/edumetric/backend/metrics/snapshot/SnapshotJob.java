@@ -22,9 +22,15 @@ public class SnapshotJob {
     private final StudentMetricsRepository studentMetricsRepository;
     private final MetricSnapshotRepository metricSnapshotRepository;
 
-    @Scheduled(cron = "0 0 3 * * MON")
+    /**
+     * Guarantees one snapshot per student per day. Runs nightly at 02:00 UTC; the per-date
+     * dedup makes it idempotent, so a manual mid-day trigger (or a restart-and-rerun) never
+     * double-writes. This is what keeps the growth/consistency trends continuous rather than
+     * only capturing whatever days happened to have an on-demand recompute.
+     */
+    @Scheduled(cron = "0 0 2 * * *")
     @Transactional
-    public void weeklySnapshot() {
+    public void dailySnapshot() {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         int written = 0;
         for (StudentMetrics m : studentMetricsRepository.findAll()) {
@@ -46,6 +52,6 @@ public class SnapshotJob {
                     .build());
             written++;
         }
-        log.info("Weekly snapshot written: {} rows on {}", written, today);
+        log.info("Daily snapshot written: {} rows on {}", written, today);
     }
 }

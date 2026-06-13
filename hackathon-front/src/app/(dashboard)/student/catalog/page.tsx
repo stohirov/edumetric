@@ -25,13 +25,14 @@ import type {
   EnrollmentRequestDto,
   EnrollmentRequestStatus,
 } from "@/types/api";
+import type { Dictionary } from "@/lib/i18n/types";
 
-function errorMessage(e: unknown): string {
+function errorMessage(e: unknown, fallback: string): string {
   return e instanceof ApiError
     ? (e.details?.join(", ") ?? e.message)
     : e instanceof Error
       ? e.message
-      : "Something went wrong";
+      : fallback;
 }
 
 function formatDate(value: string | null): string {
@@ -57,9 +58,13 @@ const STATUS_VARIANT: Record<
 function OfferingCard({
   item,
   onRequested,
+  tt,
+  fallbackError,
 }: {
   item: CatalogItemDto;
   onRequested: () => void;
+  tt: Dictionary["pages"]["studentCatalogPage"];
+  fallbackError: string;
 }) {
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -75,12 +80,12 @@ function OfferingCard({
         message: message.trim() === "" ? undefined : message.trim(),
       });
       setFeedbackKind("success");
-      setFeedback("Enrollment requested.");
+      setFeedback(tt.requested);
       setMessage("");
       onRequested();
     } catch (e) {
       setFeedbackKind("error");
-      setFeedback(errorMessage(e));
+      setFeedback(errorMessage(e, fallbackError));
     } finally {
       setSubmitting(false);
     }
@@ -103,7 +108,7 @@ function OfferingCard({
           <Input
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Optional message (why you'd like to join)"
+            placeholder={tt.optionalMessage}
             disabled={submitting}
           />
           <Button
@@ -113,7 +118,7 @@ function OfferingCard({
             disabled={submitting}
           >
             <Send className="h-4 w-4" />
-            Request enrollment
+            {tt.requestEnrollment}
           </Button>
           {feedback && (
             <p
@@ -135,25 +140,27 @@ function OfferingCard({
 function MyRequestsCard({
   requests,
   loading,
+  tt,
 }: {
   requests: EnrollmentRequestDto[];
   loading: boolean;
+  tt: Dictionary["pages"]["studentCatalogPage"];
 }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>My requests</CardTitle>
+        <CardTitle>{tt.myRequests}</CardTitle>
         <CardDescription>
-          Track the status of your enrollment requests.
+          {tt.myRequestsDesc}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {loading ? (
-          <LoadingState label="Loading your requests…" className="min-h-[20vh]" />
+          <LoadingState label={tt.loadingRequests} className="min-h-[20vh]" />
         ) : requests.length === 0 ? (
           <EmptyState
-            title="No requests yet"
-            message="Request enrollment from the catalog above to get started."
+            title={tt.noRequests}
+            message={tt.noRequestsMsg}
           />
         ) : (
           <ul className="divide-y divide-theme">
@@ -167,7 +174,7 @@ function MyRequestsCard({
                     {req.courseName}
                   </p>
                   <p className="truncate text-xs text-theme-muted">
-                    {req.groupName} · Requested {formatDate(req.createdAt)}
+                    {req.groupName} · {tt.requestedOn} {formatDate(req.createdAt)}
                   </p>
                 </div>
                 <Badge variant={STATUS_VARIANT[req.status]}>{req.status}</Badge>
@@ -183,6 +190,8 @@ function MyRequestsCard({
 export default function StudentCatalogPage() {
   const { user } = useAuth();
   const t = useT();
+  const tt = t.pages.studentCatalogPage;
+  const fallbackError = t.pages.studentContent.error;
 
   const catalogQuery = useAsync(() => catalogApi.listCatalog(), [user?.id]);
   const requestsQuery = useAsync(() => catalogApi.myRequests(), [user?.id]);
@@ -196,11 +205,11 @@ export default function StudentCatalogPage() {
       >
         <Header
           title={t.nav.catalog}
-          description="Browse available course offerings and request enrollment."
+          description={tt.desc}
         />
         <div className="space-y-8 p-8">
           {catalogQuery.loading ? (
-            <LoadingState label="Loading catalog…" />
+            <LoadingState label={tt.loadingCatalog} />
           ) : catalogQuery.error ? (
             <ErrorState
               message={catalogQuery.error.message}
@@ -208,8 +217,8 @@ export default function StudentCatalogPage() {
             />
           ) : (catalogQuery.data ?? []).length === 0 ? (
             <EmptyState
-              title="No offerings available"
-              message="There are no course offerings open for enrollment right now."
+              title={tt.noOfferings}
+              message={tt.noOfferingsMsg}
             />
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -218,6 +227,8 @@ export default function StudentCatalogPage() {
                   key={item.groupId}
                   item={item}
                   onRequested={requestsQuery.reload}
+                  tt={tt}
+                  fallbackError={fallbackError}
                 />
               ))}
             </div>
@@ -225,7 +236,7 @@ export default function StudentCatalogPage() {
 
           {requestsQuery.error ? (
             <ErrorState
-              title="Couldn’t load your requests"
+              title={tt.loadRequestsError}
               message={requestsQuery.error.message}
               onRetry={requestsQuery.reload}
             />
@@ -233,6 +244,7 @@ export default function StudentCatalogPage() {
             <MyRequestsCard
               requests={requestsQuery.data ?? []}
               loading={requestsQuery.loading}
+              tt={tt}
             />
           )}
         </div>

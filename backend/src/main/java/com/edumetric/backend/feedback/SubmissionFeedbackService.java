@@ -14,8 +14,9 @@ import com.edumetric.backend.students.domain.Student;
 import com.edumetric.backend.users.UserRepository;
 import com.edumetric.backend.users.domain.User;
 import java.time.Instant;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,28 +59,25 @@ public class SubmissionFeedbackService {
 
     /** Teacher/admin reads all feedback for a student on an assignment they teach. */
     @Transactional(readOnly = true)
-    public List<FeedbackDto> listForTeacher(Long assignmentId, Long studentId, AuthenticatedUser actor) {
+    public Page<FeedbackDto> listForTeacher(
+            Long assignmentId, Long studentId, AuthenticatedUser actor, Pageable pageable) {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Assignment", assignmentId));
         teacherScope.assertTeachesCourse(actor, assignment.getCourse().getId());
 
         return submissionFeedbackRepository
-                .findAllByAssignmentIdAndStudentIdOrderByCreatedAtAsc(assignmentId, studentId)
-                .stream()
-                .map(FeedbackDto::from)
-                .toList();
+                .findAllByAssignmentIdAndStudentIdOrderByCreatedAtAsc(assignmentId, studentId, pageable)
+                .map(FeedbackDto::from);
     }
 
     /** Student reads feedback addressed to them on an assignment. */
     @Transactional(readOnly = true)
-    public List<FeedbackDto> listForStudent(Long assignmentId, AuthenticatedUser actor) {
+    public Page<FeedbackDto> listForStudent(Long assignmentId, AuthenticatedUser actor, Pageable pageable) {
         Student student = studentRepository.findByUserId(actor.id())
                 .orElseThrow(() -> ResourceNotFoundException.of("Student", actor.id()));
 
         return submissionFeedbackRepository
-                .findAllByAssignmentIdAndStudentIdOrderByCreatedAtAsc(assignmentId, student.getId())
-                .stream()
-                .map(FeedbackDto::from)
-                .toList();
+                .findAllByAssignmentIdAndStudentIdOrderByCreatedAtAsc(assignmentId, student.getId(), pageable)
+                .map(FeedbackDto::from);
     }
 }

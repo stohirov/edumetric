@@ -16,9 +16,10 @@ import com.edumetric.backend.students.domain.Student;
 import com.edumetric.backend.users.UserRepository;
 import com.edumetric.backend.users.domain.User;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,10 +36,8 @@ public class CatalogService {
 
     /** Open offerings: every group is browsable in the catalog. */
     @Transactional(readOnly = true)
-    public List<CatalogItemDto> catalog() {
-        return groupRepository.findAll().stream()
-                .map(CatalogItemDto::from)
-                .toList();
+    public Page<CatalogItemDto> catalog(Pageable pageable) {
+        return groupRepository.findAll(pageable).map(CatalogItemDto::from);
     }
 
     @Transactional
@@ -73,21 +72,19 @@ public class CatalogService {
     }
 
     @Transactional(readOnly = true)
-    public List<EnrollmentRequestDto> myRequests(Long actorUserId) {
+    public Page<EnrollmentRequestDto> myRequests(Long actorUserId, Pageable pageable) {
         Student student = studentRepository.findByUserId(actorUserId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Student for user", actorUserId));
         return enrollmentRequestRepository
-                .findAllByStudentIdOrderByCreatedAtDesc(student.getId()).stream()
-                .map(EnrollmentRequestDto::from)
-                .toList();
+                .findAllByStudentIdOrderByCreatedAtDesc(student.getId(), pageable)
+                .map(EnrollmentRequestDto::from);
     }
 
     @Transactional(readOnly = true)
-    public List<EnrollmentRequestDto> pending() {
+    public Page<EnrollmentRequestDto> pending(Pageable pageable) {
         return enrollmentRequestRepository
-                .findAllByStatusOrderByCreatedAtDesc(EnrollmentRequestStatus.PENDING).stream()
-                .map(EnrollmentRequestDto::from)
-                .toList();
+                .findAllByStatusOrderByCreatedAtDesc(EnrollmentRequestStatus.PENDING, pageable)
+                .map(EnrollmentRequestDto::from);
     }
 
     @Transactional

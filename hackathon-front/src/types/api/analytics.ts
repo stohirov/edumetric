@@ -111,3 +111,23 @@ export interface AtRiskStudentDto {
   attendanceNorm: number;
   reason: string;
 }
+
+export interface CohortRow {
+  groupId: number;
+  groupName: string;
+  studentCount: number;
+  avgComposite: number | null;
+  avgAttendance: number | null;
+  avgGrades: number | null;
+  atRiskCount: number;
+}
+
+export interface LongitudinalPoint {
+  label: string;
+  avgComposite: number | null;
+}
+
+export interface CohortComparisonDto {
+  cohorts: CohortRow[];
+  longitudinal: LongitudinalPoint[];
+}

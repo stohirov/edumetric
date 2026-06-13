@@ -53,7 +53,8 @@ public class EnrollmentController {
     @GetMapping("/student/{studentId}")
     @PreAuthorize("hasRole('TEACHER')")
     public ResponseEntity<ApiResponse<List<EnrollmentDto>>> history(
-            @PathVariable Long studentId) {
-        return ResponseEntity.ok(ApiResponse.ok(enrollmentService.history(studentId)));
+            @PathVariable Long studentId,
+            @AuthenticationPrincipal AuthenticatedUser actor) {
+        return ResponseEntity.ok(ApiResponse.ok(enrollmentService.history(studentId, actor)));
     }
 }

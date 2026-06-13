@@ -8,8 +8,8 @@
 |---|---|---|
 | Deployment model | **Monolith** | One team, one VPS, 5-day hackathon. Microservices buy nothing here. |
 | Database | **PostgreSQL 16 only** | No NoSQL. Relational is a perfect fit for the domain. |
-| Cache | **None** (denormalized `student_metrics` table) | The "cache" is a Postgres row keyed by `student_id`. Faster than Redis round-trips, survives restarts, no invalidation logic. |
-| Message broker | **None** | One producer, one consumer, all in-process. Sync recompute is a feature, not a limitation — see §6. |
+| Cache | **Denormalized `student_metrics` table** for per-student reads; **Redis (read-through) for analytics dashboards** | The per-student "cache" is a Postgres row keyed by `student_id` — faster than a round-trip, survives restarts, no invalidation logic. The admin/teacher/cohort dashboards aggregate across *all* rows on every request, so they sit behind a short-TTL Spring Cache (Redis in prod, in-process fallback in dev/test). Evicted on full recompute / formula change; the live per-student recompute demo is never cached. See §6. |
+| Message broker | **None** | One producer, one consumer, all in-process. Sync recompute is a feature, not a limitation — see §6. (Redis is used as a cache only, never as a broker.) |
 | Auth | **JWT (HS256, 24h, stateless)** | No refresh tokens for MVP. Expired = re-login. |
 | Real-time | **None** | No websockets. SWR polling every 5–10s on the frontend covers the "live recompute" demo moment. |
 | Recompute strategy | **Synchronous, in-transaction** | Bulk attendance for 24 students ≈ 24 cheap recomputes in one tx. Demo trick: mark attendance → switch tab → score already changed. |

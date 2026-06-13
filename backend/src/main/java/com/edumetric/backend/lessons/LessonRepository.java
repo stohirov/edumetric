@@ -12,6 +12,8 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
     List<Lesson> findAllByTeacherIdAndScheduledAtBetweenOrderByScheduledAt(
             Long teacherId, OffsetDateTime from, OffsetDateTime to);
 
+    List<Lesson> findAllByScheduledAtBetweenOrderByScheduledAt(OffsetDateTime from, OffsetDateTime to);
+
     @Query("""
             SELECT CASE WHEN COUNT(l) > 0 THEN TRUE ELSE FALSE END
             FROM Lesson l
@@ -23,6 +25,9 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     @Query("SELECT DISTINCT l.group.id FROM Lesson l WHERE l.teacher.user.id = :teacherUserId")
     List<Long> findGroupIdsForTeacherUser(@Param("teacherUserId") Long teacherUserId);
+
+    @Query("SELECT DISTINCT l.group.course.id FROM Lesson l WHERE l.teacher.user.id = :teacherUserId")
+    List<Long> findCourseIdsForTeacherUser(@Param("teacherUserId") Long teacherUserId);
 
     @Query("""
             SELECT CASE WHEN COUNT(l) > 0 THEN TRUE ELSE FALSE END

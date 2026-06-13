@@ -1,13 +1,14 @@
 package com.edumetric.backend.grades;
 
 import com.edumetric.backend.common.api.ApiResponse;
+import com.edumetric.backend.common.api.PageResponse;
 import com.edumetric.backend.grades.dto.AssignmentDto;
 import com.edumetric.backend.grades.dto.CreateAssignmentRequest;
 import com.edumetric.backend.grades.dto.UpdateAssignmentRequest;
 import com.edumetric.backend.security.AuthenticatedUser;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -30,10 +31,12 @@ public class AssignmentController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<List<AssignmentDto>>> listByCourse(
+    public ResponseEntity<ApiResponse<PageResponse<AssignmentDto>>> listByCourse(
             @RequestParam Long courseId,
-            @AuthenticationPrincipal AuthenticatedUser principal) {
-        return ResponseEntity.ok(ApiResponse.ok(assignmentService.listByCourse(courseId, principal)));
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            Pageable pageable) {
+        return ResponseEntity.ok(
+                ApiResponse.ok(PageResponse.of(assignmentService.listByCourse(courseId, principal, pageable))));
     }
 
     @PostMapping

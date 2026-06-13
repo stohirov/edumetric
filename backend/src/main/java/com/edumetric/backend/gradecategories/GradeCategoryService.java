@@ -11,8 +11,9 @@ import com.edumetric.backend.gradecategories.dto.UpdateGradeCategoryRequest;
 import com.edumetric.backend.security.AuthenticatedUser;
 import com.edumetric.backend.security.TeacherScope;
 import java.time.Instant;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,10 +31,9 @@ public class GradeCategoryService {
     private final AuditLogService auditLogService;
 
     @Transactional(readOnly = true)
-    public List<GradeCategoryDto> listByCourse(Long courseId, AuthenticatedUser actor) {
-        return gradeCategoryRepository.findAllByCourseIdOrderByPositionAscIdAsc(courseId).stream()
-                .map(GradeCategoryDto::from)
-                .toList();
+    public Page<GradeCategoryDto> listByCourse(Long courseId, AuthenticatedUser actor, Pageable pageable) {
+        return gradeCategoryRepository.findAllByCourseIdOrderByPositionAscIdAsc(courseId, pageable)
+                .map(GradeCategoryDto::from);
     }
 
     @Transactional

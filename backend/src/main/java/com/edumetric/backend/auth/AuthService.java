@@ -5,7 +5,6 @@ import com.edumetric.backend.auth.dto.DeviceInfo;
 import com.edumetric.backend.auth.dto.LoginRequest;
 import com.edumetric.backend.auth.dto.SessionDto;
 import com.edumetric.backend.auth.dto.UserDto;
-import java.util.List;
 import com.edumetric.backend.common.exception.BadRequestException;
 import com.edumetric.backend.common.exception.ResourceNotFoundException;
 import com.edumetric.backend.security.AuthenticatedUser;
@@ -14,6 +13,8 @@ import com.edumetric.backend.users.UserRepository;
 import com.edumetric.backend.users.domain.User;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.LockedException;
@@ -122,8 +123,8 @@ public class AuthService {
     }
 
     /** Lists the user's active sessions, flagging the caller's current one. */
-    public List<SessionDto> listSessions(Long userId, String currentRawToken) {
-        return refreshTokenService.listSessions(userId, currentRawToken);
+    public Page<SessionDto> listSessions(Long userId, String currentRawToken, Pageable pageable) {
+        return refreshTokenService.listSessions(userId, currentRawToken, pageable);
     }
 
     /** Revokes one of the user's sessions by id. Returns false if it wasn't found. */

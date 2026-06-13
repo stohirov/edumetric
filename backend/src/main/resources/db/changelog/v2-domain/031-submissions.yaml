@@ -1,0 +1,202 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-031-create-submissions
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: submissions
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: student_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_submissions_student
+                    references: students(id)
+              - column:
+                  name: course_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_submissions_course
+                    references: courses(id)
+              - column:
+                  name: kind
+                  type: VARCHAR(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: assignment_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_submissions_assignment
+                    references: assignments(id)
+              - column:
+                  name: quiz_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_submissions_quiz
+                    references: quizzes(id)
+              - column:
+                  name: status
+                  type: VARCHAR(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: score
+                  type: NUMERIC(10,2)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: max_score
+                  type: NUMERIC(10,2)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: attempt_count
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: submitted_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: graded_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: v2-031-submissions-checks
+      author: stohirov
+      changes:
+        - sql:
+            sql: ALTER TABLE submissions ADD CONSTRAINT ck_submissions_kind CHECK (kind IN ('HOMEWORK','QUIZ'))
+        - sql:
+            sql: ALTER TABLE submissions ADD CONSTRAINT ck_submissions_status CHECK (status IN ('SUBMITTED','GRADED'))
+        - sql:
+            sql: ALTER TABLE submissions ADD CONSTRAINT ck_submissions_target CHECK ((kind = 'HOMEWORK' AND assignment_id IS NOT NULL AND quiz_id IS NULL) OR (kind = 'QUIZ' AND quiz_id IS NOT NULL AND assignment_id IS NULL))
+  - changeSet:
+      id: v2-031-submissions-unique-assignment
+      author: stohirov
+      changes:
+        - addUniqueConstraint:
+            tableName: submissions
+            columnNames: student_id, assignment_id
+            constraintName: uk_submissions_student_assignment
+  - changeSet:
+      id: v2-031-submissions-unique-quiz
+      author: stohirov
+      changes:
+        - addUniqueConstraint:
+            tableName: submissions
+            columnNames: student_id, quiz_id
+            constraintName: uk_submissions_student_quiz
+  - changeSet:
+      id: v2-031-submissions-index-course
+      author: stohirov
+      changes:
+        - createIndex:
+            tableName: submissions
+            indexName: idx_submissions_course
+            columns:
+              - column:
+                  name: course_id
+  - changeSet:
+      id: v2-031-submissions-index-student
+      author: stohirov
+      changes:
+        - createIndex:
+            tableName: submissions
+            indexName: idx_submissions_student
+            columns:
+              - column:
+                  name: student_id
+  - changeSet:
+      id: v2-031-backfill-homework
+      author: stohirov
+      comment: One canonical row per existing homework submission, graded state mirrored from grades.
+      changes:
+        - sql:
+            sql: >-
+              INSERT INTO submissions
+                (student_id, course_id, kind, assignment_id, status, score, max_score,
+                 attempt_count, submitted_at, graded_at, created_at, updated_at)
+              SELECT hs.student_id,
+                     a.course_id,
+                     'HOMEWORK',
+                     hs.assignment_id,
+                     CASE WHEN g.id IS NOT NULL THEN 'GRADED' ELSE 'SUBMITTED' END,
+                     g.value,
+                     CASE WHEN g.id IS NOT NULL THEN a.max_value ELSE NULL END,
+                     1,
+                     hs.submitted_at,
+                     g.graded_at,
+                     NOW(),
+                     NOW()
+              FROM homework_submissions hs
+              JOIN assignments a ON a.id = hs.assignment_id
+              LEFT JOIN grades g ON g.student_id = hs.student_id AND g.assignment_id = hs.assignment_id
+  - changeSet:
+      id: v2-031-backfill-quizzes
+      author: stohirov
+      comment: One canonical row per (student, quiz), carrying the best-scoring submitted attempt.
+      changes:
+        - sql:
+            sql: >-
+              INSERT INTO submissions
+                (student_id, course_id, kind, quiz_id, status, score, max_score,
+                 attempt_count, submitted_at, graded_at, created_at, updated_at)
+              SELECT best.student_id,
+                     q.course_id,
+                     'QUIZ',
+                     best.quiz_id,
+                     'GRADED',
+                     best.score,
+                     best.max_score,
+                     best.cnt,
+                     best.submitted_at,
+                     best.submitted_at,
+                     NOW(),
+                     NOW()
+              FROM (
+                SELECT DISTINCT ON (qa.student_id, qa.quiz_id)
+                       qa.student_id,
+                       qa.quiz_id,
+                       qa.score,
+                       qa.max_score,
+                       qa.submitted_at,
+                       (SELECT COUNT(*) FROM quiz_attempts x
+                         WHERE x.student_id = qa.student_id
+                           AND x.quiz_id = qa.quiz_id
+                           AND x.submitted_at IS NOT NULL) AS cnt
+                FROM quiz_attempts qa
+                WHERE qa.submitted_at IS NOT NULL
+                ORDER BY qa.student_id, qa.quiz_id,
+                         COALESCE(qa.score, 0) / NULLIF(qa.max_score, 0) DESC NULLS LAST,
+                         qa.submitted_at DESC
+              ) best
+              JOIN quizzes q ON q.id = best.quiz_id

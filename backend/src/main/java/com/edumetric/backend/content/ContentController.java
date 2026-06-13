@@ -1,6 +1,7 @@
 package com.edumetric.backend.content;
 
 import com.edumetric.backend.common.api.ApiResponse;
+import com.edumetric.backend.common.api.PageResponse;
 import com.edumetric.backend.content.ContentService.DownloadedFile;
 import com.edumetric.backend.content.dto.CourseContentDto;
 import com.edumetric.backend.content.dto.CreateMaterialRequest;
@@ -11,8 +12,8 @@ import com.edumetric.backend.content.dto.UpdateMaterialRequest;
 import com.edumetric.backend.content.dto.UpdateModuleRequest;
 import com.edumetric.backend.security.AuthenticatedUser;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -40,10 +41,11 @@ public class ContentController {
 
     @GetMapping("/api/modules")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<List<ModuleDto>>> listModules(
+    public ResponseEntity<ApiResponse<PageResponse<ModuleDto>>> listModules(
             @RequestParam Long courseId,
-            @AuthenticationPrincipal AuthenticatedUser principal) {
-        return ResponseEntity.ok(ApiResponse.ok(contentService.listModules(courseId, principal)));
+            @AuthenticationPrincipal AuthenticatedUser principal, Pageable pageable) {
+        return ResponseEntity.ok(
+                ApiResponse.ok(PageResponse.of(contentService.listModules(courseId, principal, pageable))));
     }
 
     @PostMapping("/api/modules")
@@ -118,10 +120,11 @@ public class ContentController {
 
     @GetMapping("/api/materials/{id}/versions")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<List<com.edumetric.backend.content.dto.MaterialVersionDto>>> listVersions(
+    public ResponseEntity<ApiResponse<PageResponse<com.edumetric.backend.content.dto.MaterialVersionDto>>> listVersions(
             @PathVariable Long id,
-            @AuthenticationPrincipal AuthenticatedUser principal) {
-        return ResponseEntity.ok(ApiResponse.ok(contentService.listVersions(id, principal)));
+            @AuthenticationPrincipal AuthenticatedUser principal, Pageable pageable) {
+        return ResponseEntity.ok(
+                ApiResponse.ok(PageResponse.of(contentService.listVersions(id, principal, pageable))));
     }
 
     @PostMapping("/api/materials/{id}/versions/{versionId}/restore")

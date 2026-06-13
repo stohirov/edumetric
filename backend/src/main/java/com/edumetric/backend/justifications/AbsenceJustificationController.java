@@ -1,13 +1,14 @@
 package com.edumetric.backend.justifications;
 
 import com.edumetric.backend.common.api.ApiResponse;
+import com.edumetric.backend.common.api.PageResponse;
 import com.edumetric.backend.justifications.dto.CreateJustificationRequest;
 import com.edumetric.backend.justifications.dto.DecisionRequest;
 import com.edumetric.backend.justifications.dto.JustificationDto;
 import com.edumetric.backend.security.AuthenticatedUser;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -35,16 +36,18 @@ public class AbsenceJustificationController {
 
     @GetMapping("/me")
     @PreAuthorize("hasRole('STUDENT')")
-    public ResponseEntity<ApiResponse<List<JustificationDto>>> myJustifications(
-            @AuthenticationPrincipal AuthenticatedUser principal) {
-        return ResponseEntity.ok(ApiResponse.ok(justificationService.myJustifications(principal)));
+    public ResponseEntity<ApiResponse<PageResponse<JustificationDto>>> myJustifications(
+            @AuthenticationPrincipal AuthenticatedUser principal, Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                PageResponse.of(justificationService.myJustifications(principal, pageable))));
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
-    public ResponseEntity<ApiResponse<List<JustificationDto>>> pending(
-            @AuthenticationPrincipal AuthenticatedUser principal) {
-        return ResponseEntity.ok(ApiResponse.ok(justificationService.pending(principal)));
+    public ResponseEntity<ApiResponse<PageResponse<JustificationDto>>> pending(
+            @AuthenticationPrincipal AuthenticatedUser principal, Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                PageResponse.of(justificationService.pending(principal, pageable))));
     }
 
     @PostMapping("/{id}/approve")

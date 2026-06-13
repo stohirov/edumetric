@@ -17,6 +17,7 @@ public record StudentMetricsDto(
         String formulaVersion,
         int sampleSize,
         boolean insufficientData,
+        boolean lowConfidence,
         Instant computedAt) {
 
     public static StudentMetricsDto from(StudentMetrics m) {
@@ -33,6 +34,7 @@ public record StudentMetricsDto(
                 m.getFormulaVersion(),
                 m.getSampleSize(),
                 m.getCompositeScore() == null,
+                m.isLowConfidence(),
                 m.getComputedAt());
     }
 }

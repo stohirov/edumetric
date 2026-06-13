@@ -69,6 +69,10 @@ public class StudentMetrics {
     @Column(name = "sample_size", nullable = false)
     private int sampleSize;
 
+    /** A composite was computed but on too thin a sample to be statistically reliable. */
+    @Column(name = "low_confidence", nullable = false)
+    private boolean lowConfidence;
+
     @Column(name = "computed_at", nullable = false)
     private Instant computedAt;
 }

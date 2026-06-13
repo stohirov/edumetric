@@ -57,7 +57,7 @@ public class StudentController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('TEACHER') or @studentSelfScope.isSelf(authentication.principal, #id)")
     public ResponseEntity<ApiResponse<StudentDto>> get(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok(studentService.get(id)));
     }

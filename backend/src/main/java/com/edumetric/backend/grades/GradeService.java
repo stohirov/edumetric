@@ -15,6 +15,7 @@ import com.edumetric.backend.security.AuthenticatedUser;
 import com.edumetric.backend.security.TeacherScope;
 import com.edumetric.backend.students.StudentRepository;
 import com.edumetric.backend.students.domain.Student;
+import com.edumetric.backend.submissions.SubmissionService;
 import com.edumetric.backend.users.UserRepository;
 import com.edumetric.backend.users.domain.User;
 import java.math.BigDecimal;
@@ -36,6 +37,7 @@ public class GradeService {
     private final TeacherScope teacherScope;
     private final MetricsService metricsService;
     private final NotificationService notificationService;
+    private final SubmissionService submissionService;
 
     @Transactional
     public GradeDto create(CreateGradeRequest request, AuthenticatedUser actor) {
@@ -59,6 +61,7 @@ public class GradeService {
         grade.setGradedBy(grader);
         grade.setGradedAt(Instant.now());
         Grade saved = gradeRepository.save(grade);
+        submissionService.markGraded(student.getId(), assignment, grade.getValue(), grade.getGradedAt());
         metricsService.recompute(student.getId());
         notificationService.notifyUser(
                 student.getUser().getId(),
@@ -95,6 +98,7 @@ public class GradeService {
             grade.setGradedBy(grader);
             grade.setGradedAt(now);
             gradeRepository.save(grade);
+            submissionService.markGraded(student.getId(), assignment, entry.value(), now);
             affectedStudentIds.add(student.getId());
             notifyUserIds.add(student.getUser().getId());
         }
@@ -124,6 +128,8 @@ public class GradeService {
                 .orElseThrow(() -> ResourceNotFoundException.of("User", actor.id()));
         grade.setGradedBy(grader);
         grade.setGradedAt(Instant.now());
+        submissionService.markGraded(
+                grade.getStudent().getId(), grade.getAssignment(), grade.getValue(), grade.getGradedAt());
         metricsService.recompute(grade.getStudent().getId());
         return GradeDto.from(grade);
     }
@@ -133,9 +139,11 @@ public class GradeService {
         Grade grade = gradeRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("Grade", id));
         Long studentId = grade.getStudent().getId();
+        Long assignmentId = grade.getAssignment().getId();
         teacherScope.assertCanWriteFor(actor, studentId);
         gradeRepository.delete(grade);
         gradeRepository.flush();
+        submissionService.markUngraded(studentId, assignmentId);
         metricsService.recompute(studentId);
         return studentId;
     }

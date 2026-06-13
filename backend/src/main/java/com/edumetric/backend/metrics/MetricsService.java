@@ -7,10 +7,12 @@ import com.edumetric.backend.behavior.BehaviorRecordRepository;
 import com.edumetric.backend.behavior.domain.ActivityRecord;
 import com.edumetric.backend.behavior.domain.BehaviorRecord;
 import com.edumetric.backend.common.exception.ResourceNotFoundException;
+import com.edumetric.backend.config.AnalyticsCacheEvictor;
 import com.edumetric.backend.grades.GradeRepository;
 import com.edumetric.backend.grades.domain.Grade;
 import com.edumetric.backend.metrics.domain.FormulaConfig;
 import com.edumetric.backend.metrics.domain.StudentMetrics;
+import com.edumetric.backend.metrics.dto.FormulaPreviewDto;
 import com.edumetric.backend.metrics.engine.ComputeContext;
 import com.edumetric.backend.metrics.engine.ComputeContext.AssignmentKind;
 import com.edumetric.backend.metrics.engine.ComputeContext.AttendanceInput;
@@ -28,7 +30,9 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -49,6 +53,7 @@ public class MetricsService {
     private final AttendanceRepository attendanceRepository;
     private final BehaviorRecordRepository behaviorRepository;
     private final ActivityRecordRepository activityRepository;
+    private final AnalyticsCacheEvictor analyticsCacheEvictor;
 
     @Transactional(readOnly = true)
     public FormulaConfig activeFormula() {
@@ -69,6 +74,7 @@ public class MetricsService {
         for (Long id : studentIds) {
             studentRepository.findById(id).ifPresent(s -> recomputeStudent(s, formula));
         }
+        analyticsCacheEvictor.evictAll();
     }
 
     @Transactional
@@ -85,7 +91,86 @@ public class MetricsService {
             if (!batch.hasNext()) break;
             page++;
         }
+        analyticsCacheEvictor.evictAll();
         return total;
+    }
+
+    /**
+     * Simulates {@code proposed} against every student and reports the impact without persisting
+     * anything — the audit/preview step before an admin activates a new formula.
+     */
+    @Transactional(readOnly = true)
+    public FormulaPreviewDto previewFormula(ScoreFormula proposed) {
+        validateWeights(proposed);
+        LocalDate now = LocalDate.now(ZoneOffset.UTC);
+
+        int comparable = 0;
+        int affected = 0;
+        int increased = 0;
+        int decreased = 0;
+        double sumDelta = 0;
+        double maxIncrease = 0;
+        double maxDecrease = 0;
+        double currentSum = 0;
+        double projectedSum = 0;
+        List<FormulaPreviewDto.Mover> movers = new ArrayList<>();
+
+        int page = 0;
+        while (true) {
+            var batch = studentRepository.findAll(PageRequest.of(page, RECOMPUTE_BATCH_SIZE));
+            for (Student student : batch.getContent()) {
+                Double currentScore = studentMetricsRepository.findByStudentId(student.getId())
+                        .map(StudentMetrics::getCompositeScore)
+                        .map(BigDecimal::doubleValue)
+                        .orElse(null);
+                ComputeContext ctx = loadContext(student.getId(), proposed);
+                ComputedMetrics result = MetricsEngine.compute(ctx, now);
+                Double projectedScore = result.compositeScore() == null ? null
+                        : BigDecimal.valueOf(result.compositeScore())
+                                .setScale(2, RoundingMode.HALF_UP).doubleValue();
+
+                if (currentScore == null || projectedScore == null) {
+                    continue;
+                }
+                comparable++;
+                currentSum += currentScore;
+                projectedSum += projectedScore;
+                double delta = BigDecimal.valueOf(projectedScore - currentScore)
+                        .setScale(2, RoundingMode.HALF_UP).doubleValue();
+                if (delta != 0) {
+                    affected++;
+                    if (delta > 0) increased++; else decreased++;
+                    sumDelta += delta;
+                    maxIncrease = Math.max(maxIncrease, delta);
+                    maxDecrease = Math.min(maxDecrease, delta);
+                    movers.add(new FormulaPreviewDto.Mover(
+                            student.getId(), student.getUser().getFullName(),
+                            currentScore, projectedScore, delta));
+                }
+            }
+            if (!batch.hasNext()) break;
+            page++;
+        }
+
+        movers.sort(Comparator.comparingDouble(
+                (FormulaPreviewDto.Mover mv) -> Math.abs(mv.delta())).reversed());
+        List<FormulaPreviewDto.Mover> topMovers = movers.stream().limit(10).toList();
+
+        return new FormulaPreviewDto(
+                comparable,
+                affected,
+                increased,
+                decreased,
+                affected == 0 ? 0 : round2(sumDelta / affected),
+                round2(maxIncrease),
+                round2(maxDecrease),
+                comparable == 0 ? null : round2(currentSum / comparable),
+                comparable == 0 ? null : round2(projectedSum / comparable),
+                topMovers);
+    }
+
+    private static double round2(double v) {
+        return BigDecimal.valueOf(v).setScale(2, RoundingMode.HALF_UP).doubleValue();
     }
 
     @Transactional
@@ -138,6 +223,7 @@ public class MetricsService {
         metrics.setConsistencyBonus(scale(result.consistencyBonus()));
         metrics.setFormulaVersion(formulaConfig.getVersion());
         metrics.setSampleSize(result.sampleSize());
+        metrics.setLowConfidence(result.lowConfidence());
         metrics.setComputedAt(Instant.now());
         studentMetricsRepository.save(metrics);
     }

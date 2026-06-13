@@ -1,0 +1,20 @@
+%% Fig 4.2 — C4 Level 2: Container diagram
+%% Source: author, derived from backend/ARCHITECTURE.md §2, §10; backend/CLAUDE.md
+flowchart TB
+    user["User (web browser)"]
+    subgraph edu["EduMetric CRM"]
+        nginx["nginx<br/>[reverse proxy]"]
+        web["Web application<br/>[Next.js / React / TypeScript / Tailwind]<br/>SSR, shadcn/ui, Recharts"]
+        api["Backend API<br/>[Spring Boot 4 / Java, Spring MVC]<br/>controllers · services · JPA · metrics engine"]
+        db[("PostgreSQL 16<br/>[Database]<br/>core/domain + student_metrics + metric_snapshots")]
+        redis[("Redis<br/>[Cache]<br/>analytics dashboards only")]
+        minio[("MinIO<br/>[Object store]<br/>homework / material files")]
+    end
+
+    user -->|HTTPS| nginx
+    nginx -->|"/"| web
+    nginx -->|"/api/*"| api
+    web -->|"JSON / JWT over HTTPS"| api
+    api -->|JDBC| db
+    api -->|"read-through cache (short TTL)"| redis
+    api -->|"S3 API"| minio

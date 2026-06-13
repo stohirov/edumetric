@@ -17,8 +17,9 @@ import com.edumetric.backend.security.TeacherScope;
 import com.edumetric.backend.students.StudentRepository;
 import com.edumetric.backend.students.domain.Student;
 import java.time.Instant;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,7 +42,7 @@ public class PeerReviewService {
         if (request.reviewerStudentId().equals(request.revieweeStudentId())) {
             throw new BadRequestException("Reviewer and reviewee must be different students");
         }
-        if (peerReviewRepository.existsByAssignmentIdAndReviewerStudentIdAndRevieweeStudentId(
+        if (peerReviewRepository.existsByAssignmentIdAndReviewerIdAndRevieweeId(
                 request.assignmentId(), request.reviewerStudentId(), request.revieweeStudentId())) {
             throw new ConflictException("Peer review already assigned for this reviewer and reviewee");
         }
@@ -64,22 +65,20 @@ public class PeerReviewService {
     }
 
     @Transactional(readOnly = true)
-    public List<PeerReviewDto> listForAssignment(Long assignmentId, AuthenticatedUser actor) {
+    public Page<PeerReviewDto> listForAssignment(Long assignmentId, AuthenticatedUser actor, Pageable pageable) {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Assignment", assignmentId));
         teacherScope.assertTeachesCourse(actor, assignment.getCourse().getId());
-        return peerReviewRepository.findAllByAssignmentIdOrderByIdAsc(assignmentId).stream()
-                .map(PeerReviewDto::from)
-                .toList();
+        return peerReviewRepository.findAllByAssignmentIdOrderByIdAsc(assignmentId, pageable)
+                .map(PeerReviewDto::from);
     }
 
     @Transactional(readOnly = true)
-    public List<PeerReviewDto> myReviews(AuthenticatedUser actor) {
+    public Page<PeerReviewDto> myReviews(AuthenticatedUser actor, Pageable pageable) {
         Student student = studentRepository.findByUserId(actor.id())
                 .orElseThrow(() -> ResourceNotFoundException.of("Student for user", actor.id()));
-        return peerReviewRepository.findAllByReviewerStudentIdOrderByCreatedAtDesc(student.getId()).stream()
-                .map(PeerReviewDto::from)
-                .toList();
+        return peerReviewRepository.findAllByReviewerIdOrderByCreatedAtDesc(student.getId(), pageable)
+                .map(PeerReviewDto::from);
     }
 
     @Transactional

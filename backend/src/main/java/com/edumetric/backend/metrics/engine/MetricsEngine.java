@@ -10,6 +10,13 @@ public final class MetricsEngine {
 
     private static final int MIN_GRADES_FOR_SCORE = 5;
 
+    /**
+     * Below this many total signals (grades + attendance + behavior + activity) a composite score
+     * is still produced, but it rests on too thin a sample to be reliable — we flag it as
+     * low-confidence so dashboards can caveat it rather than presenting it as settled.
+     */
+    private static final int MIN_RELIABLE_SAMPLE = 12;
+
     private MetricsEngine() {}
 
     public static ComputedMetrics compute(ComputeContext ctx, LocalDate now) {
@@ -28,6 +35,7 @@ public final class MetricsEngine {
 
         int gradeCount = ctx.grades() == null ? 0 : ctx.grades().size();
         boolean insufficient = gradeCount < MIN_GRADES_FOR_SCORE;
+        boolean lowConfidence = !insufficient && sampleSize < MIN_RELIABLE_SAMPLE;
 
         Double composite = insufficient ? null : clamp(ctx.formula().apply(
                 gradesNorm,
@@ -48,7 +56,8 @@ public final class MetricsEngine {
                 growthBonus,
                 consistencyBonus,
                 sampleSize,
-                insufficient);
+                insufficient,
+                lowConfidence);
     }
 
     private static double clamp(double v) {

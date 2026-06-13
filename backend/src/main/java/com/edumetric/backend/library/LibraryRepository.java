@@ -1,7 +1,8 @@
 package com.edumetric.backend.library;
 
 import com.edumetric.backend.content.domain.CourseMaterial;
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,18 +16,25 @@ import org.springframework.data.repository.query.Param;
 public interface LibraryRepository extends JpaRepository<CourseMaterial, Long> {
 
     /** Every published FILE material (in a published module) across all courses. */
-    @Query("""
+    @Query(value = """
             SELECT m FROM CourseMaterial m
             WHERE m.type = com.edumetric.backend.content.domain.MaterialType.FILE
               AND m.published = true
               AND m.module.published = true
               AND m.fileObjectKey IS NOT NULL
             ORDER BY m.title ASC
+            """,
+            countQuery = """
+            SELECT COUNT(m) FROM CourseMaterial m
+            WHERE m.type = com.edumetric.backend.content.domain.MaterialType.FILE
+              AND m.published = true
+              AND m.module.published = true
+              AND m.fileObjectKey IS NOT NULL
             """)
-    List<CourseMaterial> findAllPublishedFiles();
+    Page<CourseMaterial> findAllPublishedFiles(Pageable pageable);
 
     /** Published FILE materials (in a published module) belonging to a single course. */
-    @Query("""
+    @Query(value = """
             SELECT m FROM CourseMaterial m
             WHERE m.type = com.edumetric.backend.content.domain.MaterialType.FILE
               AND m.published = true
@@ -34,6 +42,14 @@ public interface LibraryRepository extends JpaRepository<CourseMaterial, Long> {
               AND m.fileObjectKey IS NOT NULL
               AND m.module.course.id = :courseId
             ORDER BY m.title ASC
+            """,
+            countQuery = """
+            SELECT COUNT(m) FROM CourseMaterial m
+            WHERE m.type = com.edumetric.backend.content.domain.MaterialType.FILE
+              AND m.published = true
+              AND m.module.published = true
+              AND m.fileObjectKey IS NOT NULL
+              AND m.module.course.id = :courseId
             """)
-    List<CourseMaterial> findPublishedFilesForCourse(@Param("courseId") Long courseId);
+    Page<CourseMaterial> findPublishedFilesForCourse(@Param("courseId") Long courseId, Pageable pageable);
 }

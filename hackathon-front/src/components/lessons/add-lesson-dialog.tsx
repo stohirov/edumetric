@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { coursesApi, groupsApi, lessonsApi, teachersApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
+import { useT } from "@/components/providers/locale-provider";
 import type { CourseDto, GroupDto, TeacherDto } from "@/types/api";
 
 interface AddLessonDialogProps {
@@ -49,6 +50,7 @@ export function AddLessonDialog({
   onOpenChange,
   onCreated,
 }: AddLessonDialogProps) {
+  const tt = useT().pages.lessonDialog;
   const [form, setForm] = useState<FormState>(EMPTY);
   const [groups, setGroups] = useState<GroupDto[]>([]);
   const [courses, setCourses] = useState<CourseDto[]>([]);
@@ -79,7 +81,7 @@ export function AddLessonDialog({
       })
       .catch((e) => {
         if (cancelled) return;
-        setError(e instanceof Error ? e.message : "Failed to load form data");
+        setError(e instanceof Error ? e.message : tt.loadError);
       });
     return () => {
       cancelled = true;

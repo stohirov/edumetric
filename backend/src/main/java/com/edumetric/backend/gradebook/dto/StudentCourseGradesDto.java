@@ -21,7 +21,9 @@ public record StudentCourseGradesDto(
         List<Item> items) {
 
     public record Item(
+            String key,
             Long assignmentId,
+            Long quizId,
             String name,
             AssignmentType type,
             BigDecimal value,

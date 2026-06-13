@@ -14,6 +14,7 @@ import com.edumetric.backend.security.AuthenticatedUser;
 import com.edumetric.backend.security.TeacherScope;
 import com.edumetric.backend.students.StudentRepository;
 import com.edumetric.backend.students.domain.Student;
+import com.edumetric.backend.submissions.SubmissionService;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -47,6 +48,7 @@ public class HomeworkService {
     private final StudentRepository studentRepository;
     private final FileStorageService fileStorage;
     private final TeacherScope teacherScope;
+    private final SubmissionService submissionService;
 
     /** All assignments for the current student's course, enriched with submission + grade state. */
     @Transactional(readOnly = true)
@@ -108,10 +110,21 @@ public class HomeworkService {
             submission.setFileName(file.getOriginalFilename());
             submission.setFileSize(file.getSize());
             submission.setContentType(file.getContentType());
+        } else {
+            // Comment-only re-submit: drop stale file metadata so download() no longer
+            // streams a previously uploaded file the student meant to replace.
+            submission.setFileObjectKey(null);
+            submission.setFileName(null);
+            submission.setFileSize(null);
+            submission.setContentType(null);
         }
 
-        submission.setSubmittedAt(Instant.now());
-        return SubmissionDto.from(submissionRepository.save(submission));
+        Instant now = Instant.now();
+        submission.setSubmittedAt(now);
+        SubmissionDto saved = SubmissionDto.from(submissionRepository.save(submission));
+        // Mirror into the unified submission table (single source for the gradebook).
+        submissionService.recordHomeworkSubmission(student, assignment, now);
+        return saved;
     }
 
     /** Streams the file the student previously uploaded for an assignment. */

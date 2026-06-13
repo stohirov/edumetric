@@ -6,6 +6,7 @@ import { BulkAttendancePage } from "@/components/attendance/bulk-attendance-page
 import { EmptyState, ErrorState, LoadingState } from "@/components/dashboard/data-states";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useT } from "@/components/providers/locale-provider";
 import { useAsync } from "@/lib/use-async";
 import { attendanceApi, groupsApi, lessonsApi } from "@/lib/api";
 import type {
@@ -78,6 +79,8 @@ function entriesFromAttendance(
 
 export default function TeacherAttendancePage() {
   const { user, status } = useAuth();
+  const t = useT();
+  const tt = t.pages.teacherAttendance;
   const [selectedLessonId, setSelectedLessonId] = useState<number | null>(null);
 
   const lessonsQuery = useAsync(
@@ -140,7 +143,7 @@ export default function TeacherAttendancePage() {
     >
       <div className="mx-auto max-w-[1600px] px-4 pt-4 sm:px-6 lg:px-8">
         {status === "loading" || lessonsQuery.loading ? (
-          <LoadingState label="Loading today’s lessons…" />
+          <LoadingState label={tt.loadingLessons} />
         ) : lessonsQuery.error ? (
           <ErrorState
             message={lessonsQuery.error.message}
@@ -148,8 +151,8 @@ export default function TeacherAttendancePage() {
           />
         ) : headerLessons.length === 0 ? (
           <EmptyState
-            title="No lessons today"
-            message="There are no lessons scheduled for today. Attendance can only be marked against a scheduled lesson."
+            title={tt.noLessons}
+            message={tt.noLessonsMsg}
           />
         ) : (
           <>
@@ -173,7 +176,7 @@ export default function TeacherAttendancePage() {
             </div>
 
             {detailQuery.loading ? (
-              <LoadingState label="Loading roster…" />
+              <LoadingState label={tt.loadingRoster} />
             ) : detailQuery.error ? (
               <ErrorState
                 message={detailQuery.error.message}

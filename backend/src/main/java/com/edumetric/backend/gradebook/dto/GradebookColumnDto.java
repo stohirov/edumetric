@@ -5,11 +5,18 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * One assignment column in the gradebook, enriched with cohort-level stats so a
- * teacher can see at a glance which assignments are under-graded or low-scoring.
+ * One column in the gradebook, enriched with cohort-level stats so a teacher can
+ * see at a glance which columns are under-graded or low-scoring. A column is
+ * either a teacher-graded {@code ASSIGNMENT} or an auto-graded {@code QUIZ}
+ * (see {@link GradebookColumnKind}); {@code key} uniquely identifies it across
+ * both kinds ({@code "a-<id>"} / {@code "q-<id>"}). {@code assignmentId}/{@code type}/
+ * {@code dueDate} are null for quizzes; {@code quizId} is null for assignments.
  */
 public record GradebookColumnDto(
+        String key,
+        GradebookColumnKind kind,
         Long assignmentId,
+        Long quizId,
         String name,
         AssignmentType type,
         BigDecimal maxValue,

@@ -6,6 +6,7 @@ import { ProfileSettingsCard } from "@/components/settings/profile-settings-card
 import { SessionsCard } from "@/components/settings/sessions-card";
 import { TwoFactorCard } from "@/components/settings/two-factor-card";
 import { InstitutionSettingsCard } from "@/components/settings/institution-settings-card";
+import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useT } from "@/components/providers/locale-provider";
@@ -29,6 +30,7 @@ export default function AdminSettingsPage() {
           <TwoFactorCard />
           <SessionsCard />
           <InstitutionSettingsCard />
+          <NotificationPreferencesCard />
         </div>
       </DashboardShell>
     </RouteGuard>

@@ -1,0 +1,25 @@
+%% Fig 4.13 — Sequence: bulk attendance -> synchronous recompute (P2)
+%% Source: author, derived from attendance/* + metrics/MetricsService + MetricsEngine (ARCHITECTURE.md §6)
+sequenceDiagram
+    actor T as Teacher
+    participant FE as Next.js (web)
+    participant AC as AttendanceController
+    participant AS as AttendanceService
+    participant MS as MetricsService
+    participant ME as MetricsEngine (pure)
+    participant DB as PostgreSQL
+    T->>FE: mark exceptions, Save
+    FE->>AC: POST /api/attendance/bulk
+    AC->>AS: saveBulk(lessonId, entries)
+    Note over AS,DB: single @Transactional
+    loop per student entry
+        AS->>DB: upsert attendance (UNIQUE student_id, lesson_id)
+        AS->>MS: recompute(studentId)
+        MS->>DB: load grades / attendance / behaviour / activity + active formula
+        MS->>ME: compute(ComputeContext)
+        ME-->>MS: ComputedMetrics (composite + norms)
+        MS->>DB: upsert student_metrics + write audit_log
+    end
+    AS-->>AC: summary
+    AC-->>FE: 200 ApiResponse
+    Note over FE: SWR poll shows new composite score

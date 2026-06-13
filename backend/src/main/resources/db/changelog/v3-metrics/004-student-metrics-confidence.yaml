@@ -1,0 +1,25 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-026-add-low-confidence
+      author: stohirov
+      # Physically placed in v3-metrics so it runs AFTER 002-student-metrics
+      # creates the table. (Its original v2-domain placement ran before the
+      # table existed and broke a fresh-database migration.) The precondition
+      # marks the changeSet as ran on any database that already has the column
+      # from the original placement, so no environment double-applies it.
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: student_metrics
+                columnName: low_confidence
+      changes:
+        - addColumn:
+            tableName: student_metrics
+            columns:
+              - column:
+                  name: low_confidence
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

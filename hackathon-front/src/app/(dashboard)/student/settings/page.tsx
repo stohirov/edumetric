@@ -7,6 +7,7 @@ import { ErrorState, LoadingState } from "@/components/dashboard/data-states";
 import { ProfileSettingsCard } from "@/components/settings/profile-settings-card";
 import { SessionsCard } from "@/components/settings/sessions-card";
 import { TwoFactorCard } from "@/components/settings/two-factor-card";
+import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useT } from "@/components/providers/locale-provider";
@@ -39,6 +40,7 @@ export default function StudentSettingsPage() {
           <ProfileSettingsCard />
           <TwoFactorCard />
           <SessionsCard />
+          <NotificationPreferencesCard />
           {query.loading ? (
             <LoadingState />
           ) : query.error ? (

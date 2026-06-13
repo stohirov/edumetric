@@ -1,0 +1,48 @@
+databaseChangeLog:
+  # Hot-path indexes for analytics / reminder / notification queries.
+  # Each column below is filtered or range-scanned by a service query that
+  # currently triggers a sequential scan once the table grows:
+  #   - grades.graded_at      → AnalyticsService.findAllByGradedAtAfter (trends, weekly activity, insights)
+  #   - attendance.marked_at  → AnalyticsService.findAllByMarkedAtAfter (weekly activity, attendance analytics)
+  #   - assignments.due_date  → ReminderJob "due tomorrow" lookup
+  #   - parent_links.student_id → AttendanceService absence-notification fanout (findAllByStudentId)
+  - changeSet:
+      id: v2-032-index-grades-graded-at
+      author: stohirov
+      changes:
+        - createIndex:
+            tableName: grades
+            indexName: idx_grades_graded_at
+            columns:
+              - column:
+                  name: graded_at
+  - changeSet:
+      id: v2-032-index-attendance-marked-at
+      author: stohirov
+      changes:
+        - createIndex:
+            tableName: attendance
+            indexName: idx_attendance_marked_at
+            columns:
+              - column:
+                  name: marked_at
+  - changeSet:
+      id: v2-032-index-assignments-due-date
+      author: stohirov
+      changes:
+        - createIndex:
+            tableName: assignments
+            indexName: idx_assignments_due_date
+            columns:
+              - column:
+                  name: due_date
+  - changeSet:
+      id: v2-032-index-parent-links-student
+      author: stohirov
+      changes:
+        - createIndex:
+            tableName: parent_links
+            indexName: idx_parent_links_student
+            columns:
+              - column:
+                  name: student_id

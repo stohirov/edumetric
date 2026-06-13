@@ -4,10 +4,11 @@ import com.edumetric.backend.catalog.dto.CatalogItemDto;
 import com.edumetric.backend.catalog.dto.CreateEnrollmentRequestRequest;
 import com.edumetric.backend.catalog.dto.EnrollmentRequestDto;
 import com.edumetric.backend.common.api.ApiResponse;
+import com.edumetric.backend.common.api.PageResponse;
 import com.edumetric.backend.security.AuthenticatedUser;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,8 +27,8 @@ public class CatalogController {
     private final CatalogService catalogService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CatalogItemDto>>> catalog() {
-        return ResponseEntity.ok(ApiResponse.ok(catalogService.catalog()));
+    public ResponseEntity<ApiResponse<PageResponse<CatalogItemDto>>> catalog(Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.ok(PageResponse.of(catalogService.catalog(pageable))));
     }
 
     @PostMapping("/requests")
@@ -41,15 +42,16 @@ public class CatalogController {
 
     @GetMapping("/requests/me")
     @PreAuthorize("hasRole('STUDENT')")
-    public ResponseEntity<ApiResponse<List<EnrollmentRequestDto>>> myRequests(
-            @AuthenticationPrincipal AuthenticatedUser principal) {
-        return ResponseEntity.ok(ApiResponse.ok(catalogService.myRequests(principal.id())));
+    public ResponseEntity<ApiResponse<PageResponse<EnrollmentRequestDto>>> myRequests(
+            @AuthenticationPrincipal AuthenticatedUser principal, Pageable pageable) {
+        return ResponseEntity.ok(
+                ApiResponse.ok(PageResponse.of(catalogService.myRequests(principal.id(), pageable))));
     }
 
     @GetMapping("/requests")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<List<EnrollmentRequestDto>>> pending() {
-        return ResponseEntity.ok(ApiResponse.ok(catalogService.pending()));
+    public ResponseEntity<ApiResponse<PageResponse<EnrollmentRequestDto>>> pending(Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.ok(PageResponse.of(catalogService.pending(pageable))));
     }
 
     @PostMapping("/requests/{id}/approve")

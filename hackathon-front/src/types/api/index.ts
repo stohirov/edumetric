@@ -29,3 +29,7 @@ export * from "./syllabus";
 export * from "./catalog";
 export * from "./certificates";
 export * from "./grading";
+export * from "./messaging";
+export * from "./reports";
+export * from "./atRiskRules";
+export * from "./notificationPrefs";

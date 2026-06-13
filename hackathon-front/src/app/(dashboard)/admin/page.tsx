@@ -64,7 +64,7 @@ export default function AdminDashboardPage() {
       />
 
       {status === "loading" || query.loading ? (
-        <LoadingState label="Loading institution overview…" />
+        <LoadingState label={t.pages.adminOverview.loading} />
       ) : query.error || !data ? (
         <ErrorState message={query.error?.message} onRetry={query.reload} />
       ) : (

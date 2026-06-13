@@ -17,6 +17,8 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -105,13 +107,12 @@ public class RefreshTokenService {
 
     /** Lists a user's active sessions, flagging the one backed by {@code currentRawToken}. */
     @Transactional(readOnly = true)
-    public List<SessionDto> listSessions(Long userId, String currentRawToken) {
+    public Page<SessionDto> listSessions(Long userId, String currentRawToken, Pageable pageable) {
         String currentHash = currentRawToken != null && !currentRawToken.isBlank()
                 ? hash(currentRawToken)
                 : null;
-        return refreshTokenRepository.findActiveByUser(userId, Instant.now()).stream()
-                .map(t -> SessionDto.from(t, t.getTokenHash().equals(currentHash)))
-                .toList();
+        return refreshTokenRepository.findActiveByUser(userId, Instant.now(), pageable)
+                .map(t -> SessionDto.from(t, t.getTokenHash().equals(currentHash)));
     }
 
     /** Revokes one of the user's sessions by id. Returns true if a session was revoked. */

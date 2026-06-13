@@ -5,12 +5,14 @@ import com.edumetric.backend.common.api.PageResponse;
 import com.edumetric.backend.groups.dto.CreateGroupRequest;
 import com.edumetric.backend.groups.dto.GroupDto;
 import com.edumetric.backend.groups.dto.UpdateGroupRequest;
+import com.edumetric.backend.security.AuthenticatedUser;
 import com.edumetric.backend.students.dto.StudentDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -29,8 +31,9 @@ public class GroupController {
 
     @GetMapping
     @PreAuthorize("hasRole('TEACHER')")
-    public ResponseEntity<ApiResponse<PageResponse<GroupDto>>> list(Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(PageResponse.of(groupService.list(pageable))));
+    public ResponseEntity<ApiResponse<PageResponse<GroupDto>>> list(
+            @AuthenticationPrincipal AuthenticatedUser actor, Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.ok(PageResponse.of(groupService.list(actor, pageable))));
     }
 
     @GetMapping("/{id}")
@@ -42,8 +45,11 @@ public class GroupController {
     @GetMapping("/{id}/students")
     @PreAuthorize("hasRole('TEACHER')")
     public ResponseEntity<ApiResponse<PageResponse<StudentDto>>> students(
-            @PathVariable Long id, Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(PageResponse.of(groupService.listStudents(id, pageable))));
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser actor,
+            Pageable pageable) {
+        return ResponseEntity.ok(
+                ApiResponse.ok(PageResponse.of(groupService.listStudents(id, actor, pageable))));
     }
 
     @PostMapping

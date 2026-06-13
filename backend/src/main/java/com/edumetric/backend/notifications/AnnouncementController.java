@@ -1,12 +1,13 @@
 package com.edumetric.backend.notifications;
 
 import com.edumetric.backend.common.api.ApiResponse;
+import com.edumetric.backend.common.api.PageResponse;
 import com.edumetric.backend.notifications.dto.AnnouncementDto;
 import com.edumetric.backend.notifications.dto.CreateAnnouncementRequest;
 import com.edumetric.backend.security.AuthenticatedUser;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,9 +27,10 @@ public class AnnouncementController {
     /** Announcements visible to the caller (students: institution-wide + their group). */
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<List<AnnouncementDto>>> list(
-            @AuthenticationPrincipal AuthenticatedUser principal) {
-        return ResponseEntity.ok(ApiResponse.ok(announcementService.list(principal)));
+    public ResponseEntity<ApiResponse<PageResponse<AnnouncementDto>>> list(
+            @AuthenticationPrincipal AuthenticatedUser principal, Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                PageResponse.of(announcementService.list(principal, pageable))));
     }
 
     /** Post an announcement: admin → institution-wide or any group; teacher → a group they teach. */

@@ -2,6 +2,7 @@ package com.edumetric.backend.analytics;
 
 import com.edumetric.backend.analytics.dto.AdminDashboardDto;
 import com.edumetric.backend.analytics.dto.AtRiskStudentDto;
+import com.edumetric.backend.analytics.dto.CohortComparisonDto;
 import com.edumetric.backend.analytics.dto.GroupAnalyticsDto;
 import com.edumetric.backend.analytics.dto.TeacherDashboardDto;
 import com.edumetric.backend.common.api.ApiResponse;
@@ -38,8 +39,16 @@ public class AnalyticsController {
 
     @GetMapping("/groups/{id}")
     @PreAuthorize("hasRole('TEACHER')")
-    public ResponseEntity<ApiResponse<GroupAnalyticsDto>> groupAnalytics(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(analyticsService.groupAnalytics(id)));
+    public ResponseEntity<ApiResponse<GroupAnalyticsDto>> groupAnalytics(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser actor) {
+        return ResponseEntity.ok(ApiResponse.ok(analyticsService.groupAnalytics(id, actor)));
+    }
+
+    @GetMapping("/cohorts")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<CohortComparisonDto>> cohorts() {
+        return ResponseEntity.ok(ApiResponse.ok(analyticsService.cohortComparison()));
     }
 
     @GetMapping("/at-risk")

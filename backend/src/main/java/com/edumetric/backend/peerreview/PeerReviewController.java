@@ -1,13 +1,14 @@
 package com.edumetric.backend.peerreview;
 
 import com.edumetric.backend.common.api.ApiResponse;
+import com.edumetric.backend.common.api.PageResponse;
 import com.edumetric.backend.peerreview.dto.AssignPeerReviewRequest;
 import com.edumetric.backend.peerreview.dto.PeerReviewDto;
 import com.edumetric.backend.peerreview.dto.SubmitPeerReviewRequest;
 import com.edumetric.backend.security.AuthenticatedUser;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -36,17 +37,20 @@ public class PeerReviewController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<List<PeerReviewDto>>> listForAssignment(
+    public ResponseEntity<ApiResponse<PageResponse<PeerReviewDto>>> listForAssignment(
             @RequestParam Long assignmentId,
-            @AuthenticationPrincipal AuthenticatedUser principal) {
-        return ResponseEntity.ok(ApiResponse.ok(peerReviewService.listForAssignment(assignmentId, principal)));
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                PageResponse.of(peerReviewService.listForAssignment(assignmentId, principal, pageable))));
     }
 
     @GetMapping("/me")
     @PreAuthorize("hasRole('STUDENT')")
-    public ResponseEntity<ApiResponse<List<PeerReviewDto>>> myReviews(
-            @AuthenticationPrincipal AuthenticatedUser principal) {
-        return ResponseEntity.ok(ApiResponse.ok(peerReviewService.myReviews(principal)));
+    public ResponseEntity<ApiResponse<PageResponse<PeerReviewDto>>> myReviews(
+            @AuthenticationPrincipal AuthenticatedUser principal, Pageable pageable) {
+        return ResponseEntity.ok(
+                ApiResponse.ok(PageResponse.of(peerReviewService.myReviews(principal, pageable))));
     }
 
     @PostMapping("/{id}/submit")

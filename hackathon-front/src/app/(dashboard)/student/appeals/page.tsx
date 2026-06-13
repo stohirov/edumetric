@@ -32,12 +32,12 @@ import { useAsync } from "@/lib/use-async";
 import { gradebookApi, gradingApi, ApiError } from "@/lib/api";
 import type { AppealStatus } from "@/types/api";
 
-function errorMessage(e: unknown): string {
+function errorMessage(e: unknown, fallback: string): string {
   return e instanceof ApiError
     ? (e.details?.join(", ") ?? e.message)
     : e instanceof Error
       ? e.message
-      : "Something went wrong";
+      : fallback;
 }
 
 const STATUS_VARIANT: Record<
@@ -52,6 +52,8 @@ const STATUS_VARIANT: Record<
 export default function StudentAppealsPage() {
   const { user } = useAuth();
   const t = useT();
+  const tt = t.pages.studentAppeals;
+  const fallbackError = t.pages.studentContent.error;
 
   const gradesQuery = useAsync(
     () => gradebookApi.getMyCourseGrades(),
@@ -70,7 +72,7 @@ export default function StudentAppealsPage() {
     e.preventDefault();
     setFormError(null);
     if (!assignmentId || !reason.trim()) {
-      setFormError("Select an assignment and provide a reason.");
+      setFormError(tt.selectAndReason);
       return;
     }
     setSubmitting(true);
@@ -83,7 +85,7 @@ export default function StudentAppealsPage() {
       setReason("");
       appealsQuery.reload();
     } catch (err) {
-      setFormError(errorMessage(err));
+      setFormError(errorMessage(err, fallbackError));
     } finally {
       setSubmitting(false);
     }
@@ -98,28 +100,27 @@ export default function StudentAppealsPage() {
       >
         <Header
           title={t.nav.appeals}
-          description="Request a regrade and track the status of your appeals."
+          description={tt.desc}
         />
         <div className="space-y-6 p-8">
           <Card>
             <CardHeader>
-              <CardTitle>Request a regrade</CardTitle>
+              <CardTitle>{tt.requestRegrade}</CardTitle>
               <CardDescription>
-                Choose an assignment and explain why you believe the grade
-                should be reviewed.
+                {tt.requestRegradeDesc}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="appeal-assignment">Assignment</Label>
+                  <Label htmlFor="appeal-assignment">{tt.assignment}</Label>
                   <Select
                     value={assignmentId}
                     onValueChange={setAssignmentId}
                     disabled={gradesQuery.loading}
                   >
                     <SelectTrigger id="appeal-assignment">
-                      <SelectValue placeholder="Select an assignment" />
+                      <SelectValue placeholder={tt.selectAssignment} />
                     </SelectTrigger>
                     <SelectContent>
                       {assignments.map((a) => (
@@ -134,13 +135,13 @@ export default function StudentAppealsPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="appeal-reason">Reason</Label>
+                  <Label htmlFor="appeal-reason">{tt.reason}</Label>
                   <textarea
                     id="appeal-reason"
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     rows={4}
-                    placeholder="Explain why you'd like this grade reviewed…"
+                    placeholder={tt.reasonPlaceholder}
                     className="flex w-full rounded-[10px] border border-theme bg-theme-input px-3.5 py-2 text-sm text-theme shadow-[var(--shadow-xs)] transition-all duration-200 placeholder:text-theme-muted focus-visible:outline-none focus-visible:border-[var(--ring)] focus-visible:ring-[3px] focus-visible:ring-[var(--ring)]/20 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </div>
@@ -148,7 +149,7 @@ export default function StudentAppealsPage() {
                   <p className="text-sm text-red-600">{formError}</p>
                 )}
                 <Button type="submit" disabled={submitting}>
-                  {submitting ? "Submitting…" : "Submit appeal"}
+                  {submitting ? tt.submitting : tt.submitBtn}
                 </Button>
               </form>
             </CardContent>
@@ -156,9 +157,9 @@ export default function StudentAppealsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>My appeals</CardTitle>
+              <CardTitle>{tt.myAppeals}</CardTitle>
               <CardDescription>
-                The status and outcome of every appeal you have submitted.
+                {tt.myAppealsDesc}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -171,19 +172,19 @@ export default function StudentAppealsPage() {
                 />
               ) : (appealsQuery.data ?? []).length === 0 ? (
                 <EmptyState
-                  title="No appeals yet"
-                  message="Submit a regrade request above to get started."
+                  title={tt.noAppeals}
+                  message={tt.noAppealsMsg}
                 />
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-theme text-left text-theme-muted">
-                        <th className="py-2 pr-4 font-medium">Assignment</th>
-                        <th className="py-2 pr-4 font-medium">Status</th>
-                        <th className="py-2 pr-4 font-medium">Reason</th>
-                        <th className="py-2 pr-4 font-medium">Resolution</th>
-                        <th className="py-2 pr-4 font-medium">Created</th>
+                        <th className="py-2 pr-4 font-medium">{tt.assignment}</th>
+                        <th className="py-2 pr-4 font-medium">{tt.status}</th>
+                        <th className="py-2 pr-4 font-medium">{tt.reason}</th>
+                        <th className="py-2 pr-4 font-medium">{tt.resolution}</th>
+                        <th className="py-2 pr-4 font-medium">{tt.created}</th>
                       </tr>
                     </thead>
                     <tbody>

@@ -1,0 +1,75 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-027-create-at-risk-rules
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: at_risk_rules
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: composite_threshold
+                  type: DOUBLE PRECISION
+                  defaultValueNumeric: 50
+                  constraints:
+                    nullable: false
+              - column:
+                  name: attendance_threshold
+                  type: DOUBLE PRECISION
+                  defaultValueNumeric: 70
+                  constraints:
+                    nullable: false
+              - column:
+                  name: flag_low_confidence
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: composite_enabled
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: attendance_enabled
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: v2-027-seed-at-risk-rules
+      author: stohirov
+      changes:
+        - insert:
+            tableName: at_risk_rules
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 1
+              - column:
+                  name: composite_threshold
+                  valueNumeric: 50
+              - column:
+                  name: attendance_threshold
+                  valueNumeric: 70
+              - column:
+                  name: flag_low_confidence
+                  valueBoolean: false
+              - column:
+                  name: composite_enabled
+                  valueBoolean: true
+              - column:
+                  name: attendance_enabled
+                  valueBoolean: true

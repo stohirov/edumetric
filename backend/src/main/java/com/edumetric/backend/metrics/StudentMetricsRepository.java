@@ -57,11 +57,35 @@ public interface StudentMetricsRepository extends JpaRepository<StudentMetrics, 
             """)
     List<StudentMetrics> findAtRiskInGroups(@Param("groupIds") List<Long> groupIds);
 
-    List<StudentMetrics> findAllByStudentGroupId(Long groupId);
+    /**
+     * Every metric row with its student, user and group eagerly fetched in a single
+     * query. Used by the admin/cohort dashboards which group metrics by their group
+     * in memory and render student names — without the fetch joins each row lazily
+     * triggers a Student → User → Group load (classic N+1).
+     */
+    @Query("""
+            SELECT sm FROM StudentMetrics sm
+            JOIN FETCH sm.student s
+            JOIN FETCH s.user
+            LEFT JOIN FETCH s.group
+            """)
+    List<StudentMetrics> findAllWithStudent();
 
     @Query("""
             SELECT sm FROM StudentMetrics sm
-            WHERE sm.student.group.id IN :groupIds
+            JOIN FETCH sm.student s
+            JOIN FETCH s.user
+            LEFT JOIN FETCH s.group g
+            WHERE g.id = :groupId
+            """)
+    List<StudentMetrics> findAllByStudentGroupId(@Param("groupId") Long groupId);
+
+    @Query("""
+            SELECT sm FROM StudentMetrics sm
+            JOIN FETCH sm.student s
+            JOIN FETCH s.user
+            LEFT JOIN FETCH s.group g
+            WHERE g.id IN :groupIds
               AND sm.compositeScore IS NOT NULL
             """)
     List<StudentMetrics> findAllByStudentGroupIdIn(@Param("groupIds") List<Long> groupIds);

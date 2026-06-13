@@ -17,15 +17,15 @@ export function buildGradebookCsv(data: GradebookDto): string {
   const header: (string | number)[] = [
     "Student",
     "Group",
-    ...data.columns.map((c) => `${c.name} (/${c.maxValue})`),
+    ...data.columns.map((c) => `${c.name} (/${c.maxValue ?? "—"})`),
     "Course %",
     "Grade",
   ];
 
   const rows: (string | number | null)[][] = data.rows.map((row) => {
-    const cellByAssignment = new Map(row.cells.map((c) => [c.assignmentId, c]));
+    const cellByKey = new Map(row.cells.map((c) => [c.key, c]));
     const cellValues = data.columns.map((col) => {
-      const cell = cellByAssignment.get(col.assignmentId);
+      const cell = cellByKey.get(col.key);
       if (cell?.value != null) return cell.value;
       if (cell?.submitted) return "submitted";
       return "";

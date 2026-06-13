@@ -30,6 +30,9 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -64,12 +67,11 @@ public class ContentService {
     // ----- Teacher / admin authoring -------------------------------------------------
 
     @Transactional(readOnly = true)
-    public List<ModuleDto> listModules(Long courseId, AuthenticatedUser actor) {
+    public Page<ModuleDto> listModules(Long courseId, AuthenticatedUser actor, Pageable pageable) {
         teacherScope.assertTeachesCourse(actor, courseId);
-        return moduleRepository.findAllByCourseIdOrderByPositionAscIdAsc(courseId).stream()
+        return moduleRepository.findAllByCourseIdOrderByPositionAscIdAsc(courseId, pageable)
                 .map(m -> ModuleDto.from(m,
-                        materialRepository.findAllByModuleIdOrderByPositionAscIdAsc(m.getId())))
-                .toList();
+                        materialRepository.findAllByModuleIdOrderByPositionAscIdAsc(m.getId())));
     }
 
     @Transactional
@@ -267,12 +269,18 @@ public class ContentService {
         CourseMaterial material = loadMaterial(materialId);
         assertVisibleToStudent(material, student);
         assertNotLocked(material, student);
-        if (completionRepository.findByStudentIdAndMaterialId(student.getId(), materialId).isEmpty()) {
+        if (completionRepository.findByStudentIdAndMaterialId(student.getId(), materialId).isPresent()) {
+            return; // already completed — idempotent no-op
+        }
+        try {
             completionRepository.save(MaterialCompletion.builder()
                     .student(student)
                     .material(material)
                     .completedAt(Instant.now())
                     .build());
+        } catch (DataIntegrityViolationException e) {
+            // Concurrent duplicate request won the race on uk_material_completions;
+            // the material is completed either way, so treat as success.
         }
     }
 
@@ -294,12 +302,11 @@ public class ContentService {
     // ----- Prerequisite gating & versioning ------------------------------------------
 
     @Transactional(readOnly = true)
-    public List<MaterialVersionDto> listVersions(Long materialId, AuthenticatedUser actor) {
+    public Page<MaterialVersionDto> listVersions(Long materialId, AuthenticatedUser actor, Pageable pageable) {
         CourseMaterial material = loadMaterial(materialId);
         teacherScope.assertTeachesCourse(actor, material.getModule().getCourse().getId());
-        return versionRepository.findAllByMaterialIdOrderByVersionNoDesc(materialId).stream()
-                .map(MaterialVersionDto::from)
-                .toList();
+        return versionRepository.findAllByMaterialIdOrderByVersionNoDesc(materialId, pageable)
+                .map(MaterialVersionDto::from);
     }
 
     @Transactional

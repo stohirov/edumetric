@@ -1,14 +1,15 @@
 package com.edumetric.backend.invitations;
 
 import com.edumetric.backend.common.api.ApiResponse;
+import com.edumetric.backend.common.api.PageResponse;
 import com.edumetric.backend.invitations.dto.AcceptInvitationRequest;
 import com.edumetric.backend.invitations.dto.CreateInvitationRequest;
 import com.edumetric.backend.invitations.dto.InvitationDto;
 import com.edumetric.backend.invitations.dto.InvitationPreviewDto;
 import com.edumetric.backend.security.AuthenticatedUser;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -36,8 +37,8 @@ public class InvitationController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<List<InvitationDto>>> list() {
-        return ResponseEntity.ok(ApiResponse.ok(invitationService.list()));
+    public ResponseEntity<ApiResponse<PageResponse<InvitationDto>>> list(Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.ok(PageResponse.of(invitationService.list(pageable))));
     }
 
     @PostMapping("/{id}/revoke")

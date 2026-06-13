@@ -19,6 +19,8 @@ import com.edumetric.backend.users.UserRepository;
 import com.edumetric.backend.users.domain.Role;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,17 +75,17 @@ public class AnnouncementService {
     }
 
     @Transactional(readOnly = true)
-    public List<AnnouncementDto> list(AuthenticatedUser actor) {
-        List<Announcement> announcements;
+    public Page<AnnouncementDto> list(AuthenticatedUser actor, Pageable pageable) {
+        Page<Announcement> announcements;
         if (actor.role() == Role.STUDENT) {
             Long groupId = studentRepository.findByUserId(actor.id())
                     .map(Student::getGroup)
                     .map(Group::getId)
                     .orElse(null);
-            announcements = announcementRepository.findVisibleToGroup(groupId);
+            announcements = announcementRepository.findVisibleToGroup(groupId, pageable);
         } else {
-            announcements = announcementRepository.findTop50ByOrderByCreatedAtDesc();
+            announcements = announcementRepository.findAllByOrderByCreatedAtDesc(pageable);
         }
-        return announcements.stream().map(AnnouncementDto::from).toList();
+        return announcements.map(AnnouncementDto::from);
     }
 }

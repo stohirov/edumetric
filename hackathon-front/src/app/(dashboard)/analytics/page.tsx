@@ -14,6 +14,7 @@ import {
 import { ErrorState, LoadingState } from "@/components/dashboard/data-states";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useT } from "@/components/providers/locale-provider";
 import { useAsync } from "@/lib/use-async";
 import { analyticsApi } from "@/lib/api";
 import { adaptAdminAnalytics } from "@/lib/adapters/admin-analytics";
@@ -21,6 +22,7 @@ import { downloadAnalyticsCsv } from "@/lib/analytics-export";
 
 export default function AdminAnalyticsPage() {
   const { user, status } = useAuth();
+  const t = useT();
 
   const query = useAsync(async () => {
     const [dashboard, atRisk] = await Promise.all([
@@ -41,7 +43,7 @@ export default function AdminAnalyticsPage() {
     >
       <div className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
         {status === "loading" || query.loading ? (
-          <LoadingState label="Loading analytics…" />
+          <LoadingState label={t.pages.analyticsPage.loading} />
         ) : query.error || !data ? (
           <ErrorState message={query.error?.message} onRetry={query.reload} />
         ) : (

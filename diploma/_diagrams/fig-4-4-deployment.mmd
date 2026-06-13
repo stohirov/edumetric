@@ -1,0 +1,20 @@
+%% Fig 4.4 — Deployment diagram (single VPS, one docker-compose)
+%% Source: author, derived from backend/ARCHITECTURE.md §2, §10
+flowchart TB
+    browser["User device<br/>[web browser]"]
+    subgraph vps["Single VPS — docker-compose"]
+        nginx["nginx container<br/>(reverse proxy, TLS)"]
+        next["Next.js container<br/>:3000"]
+        spring["Spring Boot container<br/>:8080 (eclipse-temurin JRE, non-root)"]
+        pg[("PostgreSQL 16 container<br/>:5432")]
+        redis[("Redis container")]
+        minio[("MinIO container")]
+    end
+
+    browser -->|HTTPS 443| nginx
+    nginx -->|"/"| next
+    nginx -->|"/api/*"| spring
+    nginx -->|"/api/health"| spring
+    spring -->|JDBC| pg
+    spring -->|cache| redis
+    spring -->|S3| minio

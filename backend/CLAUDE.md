@@ -26,7 +26,9 @@ System design: `ARCHITECTURE.md` (next to this file).
 | Boilerplate | **Lombok** on entities; **records** for DTOs |
 | Observability | Actuator + Micrometer + `datasource-micrometer` |
 
-**Deliberately not used:** Redis, Kafka/RabbitMQ, WebFlux, MapStruct, Flyway, microservices. See `ARCHITECTURE.md` §1 for the reasoning.
+**Deliberately not used:** Kafka/RabbitMQ (any message broker), WebFlux, MapStruct, Flyway, microservices. See `ARCHITECTURE.md` §1 for the reasoning.
+
+**Redis** is used **only as a read-through cache for the analytics dashboards** (admin/teacher/cohort — see `config/CacheConfig.java`), behind the Spring Cache abstraction with an in-process fallback so dev/test boot without it. It is **not** a message broker and **not** part of the metrics recompute path — recompute stays synchronous and in-transaction (§6).
 
 ## Base package
 
@@ -110,8 +112,9 @@ Java records only. Co-located with the feature (`<feature>/dto/`). Never expose 
 
 ## What NOT to do
 
-- ❌ Add Redis, Kafka, or any message broker (sync recompute is intentional — see `ARCHITECTURE.md` §6)
+- ❌ Add Kafka or any message broker (sync recompute is intentional — see `ARCHITECTURE.md` §6)
 - ❌ Add async/queue-based recompute (the live recompute is a demo feature, not a bug)
+- ⚠️ Redis is allowed **only** as the analytics-dashboard cache (`CacheConfig`). Do not use it as a broker, session store, or in the recompute path.
 - ❌ Add WebFlux/reactive code (we're on Spring MVC + virtual threads)
 - ❌ Use `@Data` on entities (Hibernate proxy footgun)
 - ❌ Edit existing Liquibase changeSets (add new ones)

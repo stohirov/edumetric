@@ -67,6 +67,7 @@ public class StudentService {
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .fullName(request.fullName())
                 .role(Role.STUDENT)
+                .mustChangePassword(true)
                 .build());
         emailVerificationService.issueForNewUser(user);
 

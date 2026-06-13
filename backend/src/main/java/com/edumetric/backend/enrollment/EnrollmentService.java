@@ -11,6 +11,8 @@ import com.edumetric.backend.enrollment.dto.TransferRequest;
 import com.edumetric.backend.enrollment.dto.WithdrawRequest;
 import com.edumetric.backend.groups.GroupRepository;
 import com.edumetric.backend.groups.domain.Group;
+import com.edumetric.backend.security.AuthenticatedUser;
+import com.edumetric.backend.security.TeacherScope;
 import com.edumetric.backend.students.StudentRepository;
 import com.edumetric.backend.students.domain.Student;
 import com.edumetric.backend.users.UserRepository;
@@ -32,12 +34,14 @@ public class EnrollmentService {
     private final GroupRepository groupRepository;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
+    private final TeacherScope teacherScope;
 
     @Transactional(readOnly = true)
-    public List<EnrollmentDto> history(Long studentId) {
+    public List<EnrollmentDto> history(Long studentId, AuthenticatedUser actor) {
         if (!studentRepository.existsById(studentId)) {
             throw ResourceNotFoundException.of("Student", studentId);
         }
+        teacherScope.assertCanWriteFor(actor, studentId);
         return enrollmentRepository
                 .findAllByStudentIdOrderByEnrolledAtDescCreatedAtDesc(studentId).stream()
                 .map(EnrollmentDto::from)

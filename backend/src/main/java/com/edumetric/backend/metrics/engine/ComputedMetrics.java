@@ -10,5 +10,6 @@ public record ComputedMetrics(
         double growthBonus,
         double consistencyBonus,
         int sampleSize,
-        boolean insufficientData) {
+        boolean insufficientData,
+        boolean lowConfidence) {
 }

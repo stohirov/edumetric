@@ -4,5 +4,7 @@ package com.edumetric.backend.notifications.domain;
 public enum NotificationType {
     GRADE_POSTED,
     ANNOUNCEMENT,
-    ABSENCE_MARKED
+    ABSENCE_MARKED,
+    MESSAGE_RECEIVED,
+    REMINDER
 }

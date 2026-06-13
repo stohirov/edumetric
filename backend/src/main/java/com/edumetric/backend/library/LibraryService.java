@@ -5,8 +5,10 @@ import com.edumetric.backend.security.AuthenticatedUser;
 import com.edumetric.backend.students.StudentRepository;
 import com.edumetric.backend.students.domain.Student;
 import com.edumetric.backend.users.domain.Role;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,20 +34,20 @@ public class LibraryService {
     private final LibraryRepository libraryRepository;
     private final StudentRepository studentRepository;
 
-    public List<LibraryItemDto> listFor(AuthenticatedUser actor) {
-        List<com.edumetric.backend.content.domain.CourseMaterial> materials =
+    public Page<LibraryItemDto> listFor(AuthenticatedUser actor, Pageable pageable) {
+        Page<com.edumetric.backend.content.domain.CourseMaterial> materials =
                 actor.role() == Role.STUDENT
-                        ? findForStudent(actor)
-                        : libraryRepository.findAllPublishedFiles();
-        return materials.stream().map(LibraryItemDto::from).toList();
+                        ? findForStudent(actor, pageable)
+                        : libraryRepository.findAllPublishedFiles(pageable);
+        return materials.map(LibraryItemDto::from);
     }
 
-    private List<com.edumetric.backend.content.domain.CourseMaterial> findForStudent(
-            AuthenticatedUser actor) {
+    private Page<com.edumetric.backend.content.domain.CourseMaterial> findForStudent(
+            AuthenticatedUser actor, Pageable pageable) {
         return studentRepository.findByUserId(actor.id())
                 .map(Student::getGroup)
                 .map(group -> group.getCourse().getId())
-                .map(libraryRepository::findPublishedFilesForCourse)
-                .orElseGet(List::of);
+                .map(courseId -> libraryRepository.findPublishedFilesForCourse(courseId, pageable))
+                .orElseGet(() -> new PageImpl<>(java.util.List.of(), pageable, 0));
     }
 }

@@ -30,12 +30,12 @@ import { useAsync } from "@/lib/use-async";
 import { attendanceApi, studentsApi, ApiError } from "@/lib/api";
 import type { JustificationDto } from "@/types/api";
 
-function errorMessage(e: unknown): string {
+function errorMessage(e: unknown, fallback: string): string {
   return e instanceof ApiError
     ? (e.details?.join(", ") ?? e.message)
     : e instanceof Error
       ? e.message
-      : "Something went wrong";
+      : fallback;
 }
 
 function statusVariant(
@@ -60,6 +60,8 @@ function formatDate(iso: string | null): string {
 export default function StudentJustificationsPage() {
   const { user } = useAuth();
   const t = useT();
+  const tt = t.pages.studentJustifications;
+  const fallbackError = t.pages.studentContent.error;
 
   // Source for the lesson picker. There is no dedicated student-facing
   // "my lessons" endpoint, so we surface the lessons that already appear in
@@ -106,11 +108,11 @@ export default function StudentJustificationsPage() {
     e.preventDefault();
     setFormError(null);
     if (resolvedLessonId === null) {
-      setFormError("Please choose a lesson (or enter a valid lesson ID).");
+      setFormError(tt.chooseLesson);
       return;
     }
     if (reason.trim().length === 0) {
-      setFormError("Please describe the reason for your absence.");
+      setFormError(tt.describeReason);
       return;
     }
     setSubmitting(true);
@@ -124,7 +126,7 @@ export default function StudentJustificationsPage() {
       setManualLessonId("");
       requests.reload();
     } catch (err) {
-      setFormError(errorMessage(err));
+      setFormError(errorMessage(err, fallbackError));
     } finally {
       setSubmitting(false);
     }
@@ -139,21 +141,20 @@ export default function StudentJustificationsPage() {
       >
         <Header
           title={t.nav.justifications}
-          description="Submit an excuse for a missed lesson and track your requests."
+          description={tt.desc}
         />
         <div className="space-y-6 p-8">
           <Card>
             <CardHeader>
-              <CardTitle>Submit an excuse</CardTitle>
+              <CardTitle>{tt.submitExcuse}</CardTitle>
               <CardDescription>
-                Choose the lesson you missed and explain why. Your teacher will
-                review the request.
+                {tt.submitExcuseDesc}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="lesson">Lesson</Label>
+                  <Label htmlFor="lesson">{tt.lesson}</Label>
                   {usePicker ? (
                     <>
                       <Select
@@ -161,7 +162,7 @@ export default function StudentJustificationsPage() {
                         onValueChange={setSelectedLessonId}
                       >
                         <SelectTrigger id="lesson">
-                          <SelectValue placeholder="Select a recent lesson" />
+                          <SelectValue placeholder={tt.selectRecentLesson} />
                         </SelectTrigger>
                         <SelectContent>
                           {recentLessons.map((l) => (
@@ -169,7 +170,7 @@ export default function StudentJustificationsPage() {
                               key={l.lessonId}
                               value={String(l.lessonId)}
                             >
-                              {`Lesson #${l.lessonId} — ${l.status}`}
+                              {`${tt.lessonNum} #${l.lessonId} — ${l.status}`}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -179,7 +180,7 @@ export default function StudentJustificationsPage() {
                         className="text-xs font-medium text-indigo-600 hover:underline"
                         onClick={() => setManualMode(true)}
                       >
-                        Enter a lesson ID manually instead
+                        {tt.enterManually}
                       </button>
                     </>
                   ) : (
@@ -194,7 +195,7 @@ export default function StudentJustificationsPage() {
                         onChange={(e) => setManualLessonId(e.target.value)}
                       />
                       <p className="text-xs text-theme-muted">
-                        Find the lesson ID on your attendance page.
+                        {tt.lessonIdHint}
                       </p>
                       {recentLessons.length > 0 && (
                         <button
@@ -202,7 +203,7 @@ export default function StudentJustificationsPage() {
                           className="text-xs font-medium text-indigo-600 hover:underline"
                           onClick={() => setManualMode(false)}
                         >
-                          Pick from your recent lessons instead
+                          {tt.pickRecent}
                         </button>
                       )}
                     </>
@@ -210,13 +211,13 @@ export default function StudentJustificationsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="reason">Reason</Label>
+                  <Label htmlFor="reason">{tt.reason}</Label>
                   <textarea
                     id="reason"
                     rows={4}
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    placeholder="Explain why you were absent…"
+                    placeholder={tt.reasonPlaceholder}
                     className="flex w-full rounded-[10px] border border-theme bg-theme-input px-3.5 py-2 text-sm shadow-[var(--shadow-xs)] transition-all duration-200 placeholder:text-[var(--foreground-muted)] hover:border-[var(--ring)]/40 focus-visible:border-[var(--ring)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)]/20 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </div>
@@ -227,7 +228,7 @@ export default function StudentJustificationsPage() {
 
                 <Button type="submit" disabled={!canSubmit}>
                   <Send className="h-4 w-4" />
-                  {submitting ? "Submitting…" : "Submit excuse"}
+                  {submitting ? tt.submitting : tt.submitBtn}
                 </Button>
               </form>
             </CardContent>
@@ -235,9 +236,9 @@ export default function StudentJustificationsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>My requests</CardTitle>
+              <CardTitle>{tt.myRequests}</CardTitle>
               <CardDescription>
-                Every excuse you have submitted and its current status.
+                {tt.myRequestsDesc}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -250,18 +251,18 @@ export default function StudentJustificationsPage() {
                 />
               ) : (requests.data ?? []).length === 0 ? (
                 <EmptyState
-                  title="No requests yet"
-                  message="Submit an excuse above to get started."
+                  title={tt.noRequests}
+                  message={tt.noRequestsMsg}
                 />
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-theme text-left text-xs font-medium text-theme-muted">
-                        <th className="px-3 py-2">Lesson</th>
-                        <th className="px-3 py-2">Reason</th>
-                        <th className="px-3 py-2">Status</th>
-                        <th className="px-3 py-2">Submitted</th>
+                        <th className="px-3 py-2">{tt.lesson}</th>
+                        <th className="px-3 py-2">{tt.reasonCol}</th>
+                        <th className="px-3 py-2">{tt.status}</th>
+                        <th className="px-3 py-2">{tt.submitted}</th>
                       </tr>
                     </thead>
                     <tbody>

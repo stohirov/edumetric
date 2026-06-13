@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -89,12 +91,11 @@ public class CertificateService {
 
     /** Lists all completion certificates owned by the calling student. */
     @Transactional(readOnly = true)
-    public List<CertificateDto> myCertificates(AuthenticatedUser actor) {
+    public Page<CertificateDto> myCertificates(AuthenticatedUser actor, Pageable pageable) {
         Student student = studentRepository.findByUserId(actor.id())
                 .orElseThrow(() -> new ResourceNotFoundException("Student profile not found"));
-        return courseCompletionRepository.findAllByStudentId(student.getId()).stream()
-                .map(CertificateDto::from)
-                .toList();
+        return courseCompletionRepository.findAllByStudentId(student.getId(), pageable)
+                .map(CertificateDto::from);
     }
 
     /** Publicly verifies a certificate code without authentication. */

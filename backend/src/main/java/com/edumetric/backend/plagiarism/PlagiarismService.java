@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -108,13 +110,13 @@ public class PlagiarismService {
     }
 
     @Transactional(readOnly = true)
-    public List<PlagiarismReportDto> list(Long assignmentId, AuthenticatedUser actor) {
+    public Page<PlagiarismReportDto> list(Long assignmentId, AuthenticatedUser actor, Pageable pageable) {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Assignment", assignmentId));
         teacherScope.assertTeachesCourse(actor, assignment.getCourse().getId());
-        return plagiarismReportRepository.findAllByAssignmentIdOrderBySimilarityDesc(assignmentId).stream()
-                .map(PlagiarismReportDto::from)
-                .toList();
+        return plagiarismReportRepository
+                .findAllByAssignmentIdOrderBySimilarityDesc(assignmentId, pageable)
+                .map(PlagiarismReportDto::from);
     }
 
     /**

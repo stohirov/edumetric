@@ -3,12 +3,17 @@
 import type { AssignmentType } from "./grades";
 import type { GradingScale } from "./settings";
 
+export type GradebookColumnKind = "ASSIGNMENT" | "QUIZ";
+
 export interface GradebookColumnDto {
-  assignmentId: number;
+  key: string;
+  kind: GradebookColumnKind;
+  assignmentId: number | null;
+  quizId: number | null;
   name: string;
-  type: AssignmentType;
-  maxValue: number;
-  weight: number;
+  type: AssignmentType | null;
+  maxValue: number | null;
+  weight: number | null;
   dueDate: string | null;
   gradedCount: number;
   missingCount: number;
@@ -16,7 +21,9 @@ export interface GradebookColumnDto {
 }
 
 export interface GradebookCellDto {
-  assignmentId: number;
+  key: string;
+  assignmentId: number | null;
+  quizId: number | null;
   gradeId: number | null;
   value: number | null;
   percent: number | null;
@@ -44,9 +51,11 @@ export interface GradebookDto {
 }
 
 export interface StudentCourseGradeItem {
-  assignmentId: number;
+  key: string;
+  assignmentId: number | null;
+  quizId: number | null;
   name: string;
-  type: AssignmentType;
+  type: AssignmentType | null;
   value: number | null;
   maxValue: number;
   weight: number;

@@ -1,0 +1,55 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-029-create-notification-preferences
+      author: stohirov
+      changes:
+        - createTable:
+            tableName: notification_preferences
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: event_type
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: in_app
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: email
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: v2-029-fk-notification-preferences-user
+      author: stohirov
+      changes:
+        - addForeignKeyConstraint:
+            constraintName: fk_notification_preferences_user
+            baseTableName: notification_preferences
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+  - changeSet:
+      id: v2-029-uk-notification-preferences
+      author: stohirov
+      changes:
+        - addUniqueConstraint:
+            constraintName: uk_notification_preferences_user_event
+            tableName: notification_preferences
+            columnNames: user_id, event_type

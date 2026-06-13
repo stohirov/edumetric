@@ -13,14 +13,15 @@ import com.edumetric.backend.auth.dto.TwoFactorVerifyRequest;
 import com.edumetric.backend.auth.dto.VerifyEmailRequest;
 import com.edumetric.backend.auth.dto.UserDto;
 import com.edumetric.backend.common.api.ApiResponse;
+import com.edumetric.backend.common.api.PageResponse;
 import com.edumetric.backend.security.AuthenticatedUser;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -122,11 +123,12 @@ public class AuthController {
     }
 
     @GetMapping("/sessions")
-    public ResponseEntity<ApiResponse<List<SessionDto>>> sessions(
+    public ResponseEntity<ApiResponse<PageResponse<SessionDto>>> sessions(
             @AuthenticationPrincipal AuthenticatedUser principal,
-            @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshCookie) {
-        return ResponseEntity.ok(
-                ApiResponse.ok(authService.listSessions(principal.id(), refreshCookie)));
+            @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshCookie,
+            Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                PageResponse.of(authService.listSessions(principal.id(), refreshCookie, pageable))));
     }
 
     @DeleteMapping("/sessions/{id}")

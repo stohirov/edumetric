@@ -27,11 +27,12 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
-import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -96,16 +97,18 @@ public class InvitationService {
 
     /** All invitations, newest first. Raw token is never exposed here. */
     @Transactional(readOnly = true)
-    public List<InvitationDto> list() {
-        return invitationRepository.findAllByOrderByCreatedAtDesc().stream()
-                .map(InvitationDto::from)
-                .toList();
+    public Page<InvitationDto> list(Pageable pageable) {
+        return invitationRepository.findAllByOrderByCreatedAtDesc(pageable)
+                .map(InvitationDto::from);
     }
 
     @Transactional
     public void revoke(Long id, Long actorUserId) {
         Invitation invitation = invitationRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("Invitation", id));
+        if (invitation.getStatus() != InvitationStatus.PENDING) {
+            throw new BadRequestException("Only a pending invitation can be revoked.");
+        }
         invitation.setStatus(InvitationStatus.REVOKED);
         auditLogService.log("Invitation", invitation.getId(), "INVITATION_REVOKED", actorUserId,
                 Map.of("email", invitation.getEmail()));
