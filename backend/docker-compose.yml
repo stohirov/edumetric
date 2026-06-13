@@ -19,6 +19,59 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    container_name: edumetric-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --save 60 1
+      --appendonly yes
+      ${REDIS_PASSWORD:+--requirepass ${REDIS_PASSWORD}}
+    volumes:
+      - edumetric-redisdata:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ${REDIS_PASSWORD:+-a ${REDIS_PASSWORD}} ping | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: edumetric-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin123}
+    volumes:
+      - edumetric-miniodata:/data
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    healthcheck:
+      test: ["CMD-SHELL", "mc ready local || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # One-shot job: creates the homework bucket on startup, then exits.
+  minio-init:
+    image: minio/mc:latest
+    container_name: edumetric-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-minioadmin123} &&
+      mc mb --ignore-existing local/${MINIO_BUCKET:-edumetric-homework} &&
+      echo 'MinIO bucket ready';
+      "
+    restart: "no"
+
   backend:
     build:
       context: .
@@ -29,6 +82,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-edumetric}
@@ -37,6 +94,16 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set (>= 32 bytes)}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       LIQUIBASE_CONTEXTS: ${LIQUIBASE_CONTEXTS:-default}
+      # Redis — analytics dashboard cache (enabled in the prod profile)
+      CACHE_REDIS_ENABLED: ${CACHE_REDIS_ENABLED:-true}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      # MinIO — homework file object storage
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin123}
+      MINIO_BUCKET: ${MINIO_BUCKET:-edumetric-homework}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     healthcheck:
@@ -48,3 +115,5 @@ services:
 
 volumes:
   edumetric-pgdata:
+  edumetric-redisdata:
+  edumetric-miniodata:
