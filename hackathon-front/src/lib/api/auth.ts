@@ -4,6 +4,7 @@ import type {
   LoginRequest,
   LoginResponse,
   ResendVerificationRequest,
+  PageResponse,
   ResetPasswordRequest,
   SessionDto,
   TwoFactorEnabledResponse,
@@ -72,7 +73,9 @@ export function resendVerification(payload: ResendVerificationRequest): Promise<
 
 /** List the current user's active sessions (most recently used first). */
 export function listSessions(): Promise<SessionDto[]> {
-  return api.get<SessionDto[]>("/auth/sessions");
+  return api
+    .get<PageResponse<SessionDto>>("/auth/sessions", { query: { size: 200 } })
+    .then((p) => p.items);
 }
 
 /** Revoke a single session by id. Revoking the current session signs this device out. */

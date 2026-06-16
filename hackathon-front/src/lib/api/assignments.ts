@@ -2,13 +2,16 @@ import { api } from "./client";
 import type {
   AssignmentDto,
   CreateAssignmentRequest,
+  PageResponse,
   UpdateAssignmentRequest,
 } from "@/types/api";
 
 export function listByCourse(courseId: number): Promise<AssignmentDto[]> {
-  return api.get<AssignmentDto[]>("/assignments", {
-    query: { courseId: String(courseId) },
-  });
+  return api
+    .get<PageResponse<AssignmentDto>>("/assignments", {
+      query: { courseId: String(courseId), size: 200 },
+    })
+    .then((p) => p.items);
 }
 
 export function createAssignment(

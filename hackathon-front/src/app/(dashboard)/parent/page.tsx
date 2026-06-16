@@ -32,7 +32,8 @@ function errMessage(e: unknown): string {
 }
 
 function pct(n: number): string {
-  return `${Math.round(n * 100)}%`;
+  // Metrics arrive on a 0–100 scale from the backend; just round.
+  return `${Math.round(n)}%`;
 }
 
 export default function ParentChildrenPage() {
@@ -60,7 +61,7 @@ export default function ParentChildrenPage() {
   const atRisk =
     metrics != null &&
     !metrics.insufficientData &&
-    metrics.compositeScore < 0.6;
+    metrics.compositeScore < 60;
 
   return (
     <RouteGuard allow={["PARENT"]}>

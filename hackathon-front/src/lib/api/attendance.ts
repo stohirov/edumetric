@@ -10,6 +10,7 @@ import type {
   GroupAttendanceReportDto,
   JustificationDto,
   LessonCheckinDto,
+  PageResponse,
   UpdateAttendancePolicyRequest,
 } from "@/types/api";
 
@@ -50,10 +51,18 @@ export function submitJustification(
   return api.post<JustificationDto>("/justifications", payload);
 }
 export function myJustifications(): Promise<JustificationDto[]> {
-  return api.get<JustificationDto[]>("/justifications/me");
+  return api
+    .get<PageResponse<JustificationDto>>("/justifications/me", {
+      query: { size: 200 },
+    })
+    .then((p) => p.items);
 }
 export function pendingJustifications(): Promise<JustificationDto[]> {
-  return api.get<JustificationDto[]>("/justifications");
+  return api
+    .get<PageResponse<JustificationDto>>("/justifications", {
+      query: { size: 200 },
+    })
+    .then((p) => p.items);
 }
 export function approveJustification(id: number): Promise<JustificationDto> {
   return api.post<JustificationDto>(`/justifications/${id}/approve`);

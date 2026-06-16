@@ -1,4 +1,5 @@
 import { api, API_BASE_URL, ApiError, getToken } from "./client";
+import type { PageResponse } from "@/types/api";
 import type {
   CourseContentDto,
   CreateMaterialRequest,
@@ -14,7 +15,11 @@ import type {
 
 /** All modules (with materials) for a course the caller teaches. */
 export function listModules(courseId: number): Promise<ModuleDto[]> {
-  return api.get<ModuleDto[]>("/modules", { query: { courseId: String(courseId) } });
+  return api
+    .get<PageResponse<ModuleDto>>("/modules", {
+      query: { courseId: String(courseId), size: 200 },
+    })
+    .then((p) => p.items);
 }
 
 export function createModule(payload: CreateModuleRequest): Promise<ModuleDto> {
@@ -52,7 +57,11 @@ export function deleteMaterial(id: number): Promise<void> {
 
 /** Version history of a material (newest first). */
 export function listMaterialVersions(id: number): Promise<MaterialVersionDto[]> {
-  return api.get<MaterialVersionDto[]>(`/materials/${id}/versions`);
+  return api
+    .get<PageResponse<MaterialVersionDto>>(`/materials/${id}/versions`, {
+      query: { size: 200 },
+    })
+    .then((p) => p.items);
 }
 
 /** Roll a material back to a prior version (the current state is snapshotted first). */

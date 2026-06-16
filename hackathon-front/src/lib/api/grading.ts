@@ -9,6 +9,7 @@ import type {
   FinalizeRequest,
   GradeAppealDto,
   GradeCategoryDto,
+  PageResponse,
   PeerReviewDto,
   PlagiarismReportDto,
   RejectAppealRequest,
@@ -24,7 +25,11 @@ import type {
 
 // ----- Grade categories -----
 export function listCategories(courseId: number): Promise<GradeCategoryDto[]> {
-  return api.get<GradeCategoryDto[]>("/grade-categories", { query: { courseId } });
+  return api
+    .get<PageResponse<GradeCategoryDto>>("/grade-categories", {
+      query: { courseId, size: 200 },
+    })
+    .then((p) => p.items);
 }
 export function createCategory(payload: CreateGradeCategoryRequest): Promise<GradeCategoryDto> {
   return api.post<GradeCategoryDto>("/grade-categories", payload);
@@ -55,10 +60,18 @@ export function postFeedback(payload: CreateFeedbackRequest): Promise<FeedbackDt
   return api.post<FeedbackDto>("/feedback", payload);
 }
 export function listFeedback(assignmentId: number, studentId: number): Promise<FeedbackDto[]> {
-  return api.get<FeedbackDto[]>("/feedback", { query: { assignmentId, studentId } });
+  return api
+    .get<PageResponse<FeedbackDto>>("/feedback", {
+      query: { assignmentId, studentId, size: 200 },
+    })
+    .then((p) => p.items);
 }
 export function myFeedback(assignmentId: number): Promise<FeedbackDto[]> {
-  return api.get<FeedbackDto[]>("/feedback/me", { query: { assignmentId } });
+  return api
+    .get<PageResponse<FeedbackDto>>("/feedback/me", {
+      query: { assignmentId, size: 200 },
+    })
+    .then((p) => p.items);
 }
 
 // ----- Grade appeals -----
@@ -66,10 +79,14 @@ export function openAppeal(payload: CreateAppealRequest): Promise<GradeAppealDto
   return api.post<GradeAppealDto>("/appeals", payload);
 }
 export function myAppeals(): Promise<GradeAppealDto[]> {
-  return api.get<GradeAppealDto[]>("/appeals/me");
+  return api
+    .get<PageResponse<GradeAppealDto>>("/appeals/me", { query: { size: 200 } })
+    .then((p) => p.items);
 }
 export function pendingAppeals(): Promise<GradeAppealDto[]> {
-  return api.get<GradeAppealDto[]>("/appeals");
+  return api
+    .get<PageResponse<GradeAppealDto>>("/appeals", { query: { size: 200 } })
+    .then((p) => p.items);
 }
 export function resolveAppeal(id: number, payload: ResolveAppealRequest): Promise<GradeAppealDto> {
   return api.post<GradeAppealDto>(`/appeals/${id}/resolve`, payload);
@@ -94,7 +111,11 @@ export function checkPlagiarism(payload: CheckPlagiarismRequest): Promise<Plagia
   return api.post<PlagiarismReportDto[]>("/plagiarism/check", payload);
 }
 export function listPlagiarism(assignmentId: number): Promise<PlagiarismReportDto[]> {
-  return api.get<PlagiarismReportDto[]>("/plagiarism", { query: { assignmentId } });
+  return api
+    .get<PageResponse<PlagiarismReportDto>>("/plagiarism", {
+      query: { assignmentId, size: 200 },
+    })
+    .then((p) => p.items);
 }
 
 // ----- Peer review -----
@@ -102,10 +123,18 @@ export function assignPeerReview(payload: AssignPeerReviewRequest): Promise<Peer
   return api.post<PeerReviewDto>("/peer-reviews", payload);
 }
 export function listPeerReviews(assignmentId: number): Promise<PeerReviewDto[]> {
-  return api.get<PeerReviewDto[]>("/peer-reviews", { query: { assignmentId } });
+  return api
+    .get<PageResponse<PeerReviewDto>>("/peer-reviews", {
+      query: { assignmentId, size: 200 },
+    })
+    .then((p) => p.items);
 }
 export function myPeerReviews(): Promise<PeerReviewDto[]> {
-  return api.get<PeerReviewDto[]>("/peer-reviews/me");
+  return api
+    .get<PageResponse<PeerReviewDto>>("/peer-reviews/me", {
+      query: { size: 200 },
+    })
+    .then((p) => p.items);
 }
 export function submitPeerReview(id: number, payload: SubmitPeerReviewRequest): Promise<PeerReviewDto> {
   return api.post<PeerReviewDto>(`/peer-reviews/${id}/submit`, payload);

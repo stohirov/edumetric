@@ -3,10 +3,13 @@ import type {
   CatalogItemDto,
   CreateEnrollmentRequestRequest,
   EnrollmentRequestDto,
+  PageResponse,
 } from "@/types/api";
 
 export function listCatalog(): Promise<CatalogItemDto[]> {
-  return api.get<CatalogItemDto[]>("/catalog");
+  return api
+    .get<PageResponse<CatalogItemDto>>("/catalog", { query: { size: 200 } })
+    .then((p) => p.items);
 }
 
 export function requestEnrollment(
@@ -16,11 +19,19 @@ export function requestEnrollment(
 }
 
 export function myRequests(): Promise<EnrollmentRequestDto[]> {
-  return api.get<EnrollmentRequestDto[]>("/catalog/requests/me");
+  return api
+    .get<PageResponse<EnrollmentRequestDto>>("/catalog/requests/me", {
+      query: { size: 200 },
+    })
+    .then((p) => p.items);
 }
 
 export function pendingRequests(): Promise<EnrollmentRequestDto[]> {
-  return api.get<EnrollmentRequestDto[]>("/catalog/requests");
+  return api
+    .get<PageResponse<EnrollmentRequestDto>>("/catalog/requests", {
+      query: { size: 200 },
+    })
+    .then((p) => p.items);
 }
 
 export function approveRequest(id: number): Promise<EnrollmentRequestDto> {

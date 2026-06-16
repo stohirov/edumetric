@@ -4,10 +4,13 @@ import type {
   CreateInvitationRequest,
   InvitationDto,
   InvitationPreviewDto,
+  PageResponse,
 } from "@/types/api";
 
 export function listInvitations(): Promise<InvitationDto[]> {
-  return api.get<InvitationDto[]>("/invitations");
+  return api
+    .get<PageResponse<InvitationDto>>("/invitations", { query: { size: 200 } })
+    .then((p) => p.items);
 }
 
 export function createInvitation(

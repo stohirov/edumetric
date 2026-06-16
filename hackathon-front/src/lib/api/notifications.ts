@@ -1,4 +1,5 @@
 import { api } from "./client";
+import type { PageResponse } from "@/types/api";
 import type {
   AnnouncementDto,
   CreateAnnouncementRequest,
@@ -27,7 +28,9 @@ export function markAllRead(): Promise<void> {
 // ----- Announcements -----
 
 export function listAnnouncements(): Promise<AnnouncementDto[]> {
-  return api.get<AnnouncementDto[]>("/announcements");
+  return api
+    .get<PageResponse<AnnouncementDto>>("/announcements", { query: { size: 200 } })
+    .then((p) => p.items);
 }
 
 export function createAnnouncement(

@@ -1,6 +1,8 @@
 import { api } from "./client";
-import type { LibraryItemDto } from "@/types/api";
+import type { LibraryItemDto, PageResponse } from "@/types/api";
 
 export function listLibrary(): Promise<LibraryItemDto[]> {
-  return api.get<LibraryItemDto[]>("/library");
+  return api
+    .get<PageResponse<LibraryItemDto>>("/library", { query: { size: 200 } })
+    .then((p) => p.items);
 }

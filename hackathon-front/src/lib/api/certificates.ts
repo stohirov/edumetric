@@ -1,12 +1,20 @@
 import { api } from "./client";
-import type { CertificateDto, CertificateVerificationDto } from "@/types/api";
+import type {
+  CertificateDto,
+  CertificateVerificationDto,
+  PageResponse,
+} from "@/types/api";
 
 export function claimCertificate(): Promise<CertificateDto> {
   return api.post<CertificateDto>("/certificates/claim");
 }
 
 export function myCertificates(): Promise<CertificateDto[]> {
-  return api.get<CertificateDto[]>("/certificates/me");
+  return api
+    .get<PageResponse<CertificateDto>>("/certificates/me", {
+      query: { size: 200 },
+    })
+    .then((p) => p.items);
 }
 
 // Public — no auth required.

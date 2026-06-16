@@ -294,7 +294,8 @@ export function LoginFormCard() {
                 disabled={isLoading || !!loadingDemo}
                 className={cn(
                   "h-11 transition-shadow",
-                  error && "border-red-300 focus-visible:ring-red-400",
+                  error &&
+                    "border-red-300 focus-visible:ring-red-400 dark:border-red-800 dark:focus-visible:ring-red-500/60",
                 )}
               />
             </div>
@@ -323,7 +324,8 @@ export function LoginFormCard() {
                   disabled={isLoading || !!loadingDemo}
                   className={cn(
                     "h-11 pr-10 transition-shadow",
-                    error && "border-red-300 focus-visible:ring-red-400",
+                    error &&
+                    "border-red-300 focus-visible:ring-red-400 dark:border-red-800 dark:focus-visible:ring-red-500/60",
                   )}
                 />
                 <button
